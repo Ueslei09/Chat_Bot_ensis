@@ -1,0 +1,53 @@
+import api from './api'
+
+/**
+ * Busca chamados filtrando por status.
+ * Usado nas 3 views do painel esquerdo:
+ *   'ABERTO'          -> Fila de chamados
+ *   'EM_ATENDIMENTO'  -> Atendendo
+ *   'FECHADO'         -> Chamados fechados
+ * @param {string} status
+ */
+export async function listarChamadosPorStatus(status) {
+  const resposta = await api.get('/chamados', { params: { status } })
+  return resposta.data
+}
+
+/**
+ * Cria um novo chamado (abre atendimento) vinculado a um cliente.
+ * @param {number} clienteId
+ */
+export async function criarChamado(clienteId) {
+  const resposta = await api.post('/chamados', { cliente_id: clienteId })
+  return resposta.data
+}
+
+/**
+ * Assume um chamado da fila (vira o atendente responsável).
+ * @param {number} chamadoId
+ */
+export async function assumirChamado(chamadoId) {
+  const resposta = await api.put(`/chamados/${chamadoId}/assumir`)
+  return resposta.data
+}
+
+/**
+ * Transfere o chamado para outro atendente.
+ * @param {number} chamadoId
+ * @param {number} paraUsuarioId
+ */
+export async function transferirChamado(chamadoId, paraUsuarioId) {
+  const resposta = await api.put(`/chamados/${chamadoId}/transferir`, {
+    para_usuario: paraUsuarioId
+  })
+  return resposta.data
+}
+
+/**
+ * Fecha (encerra) um chamado.
+ * @param {number} chamadoId
+ */
+export async function fecharChamado(chamadoId) {
+  const resposta = await api.put(`/chamados/${chamadoId}/fechar`)
+  return resposta.data
+}
