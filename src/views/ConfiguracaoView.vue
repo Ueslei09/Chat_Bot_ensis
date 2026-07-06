@@ -1,5 +1,6 @@
 <template>
   <div class="configuracoes">
+  
     <h2>Configurações do Sistema</h2>
 
     <p v-if="carregando">Carregando...</p>
@@ -130,12 +131,16 @@
   </tr>
   </tbody>
 </table>
- 
+     <button class="btn-voltar" @click="voltarParaLogin">
+  ← Voltar para o login
+</button>
     
   </div>
+
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import {
   listarConfiguracoes,
@@ -150,7 +155,9 @@ import {
   desbloquearUsuario,
   alternarPermissaoApagar
 } from '@/services/usuariosServices.js'
+import { logout } from '@/services/authServices.js'
 
+const router = useRouter()
 const configuracoes = ref([])
 const carregando = ref(true)
 const salvando = ref(false)
@@ -159,6 +166,11 @@ const erro = ref('')
 // Lista de perfis (ADM/USER) pra popular o <select>
 const perfis = ref([])
  
+// Desloga o ADM e manda de volta pra tela de login normal (não a de admin)
+function voltarParaLogin() {
+  logout()
+  router.push('/')
+}
 // Libera o usuário pra apagar mensagens
 async function permitirApagarMensagens(usuario) {
   await alternarPermissaoApagar(usuario.id, true)
