@@ -8,10 +8,10 @@
     <form v-else @submit.prevent="salvar">
       <div
         v-for="config in configuracoes"
-        :key="config.chave"
+        :key="config.chaves"
         class="campo"
       >
-        <label>{{ rotulo(config.chave) }}</label>
+        <label>{{ rotulo(config.chaves) }}</label>
         <textarea v-model="config.valor" rows="2"></textarea>
       </div>
 
@@ -244,13 +244,13 @@ async function cadastrarUsuario() {
   }
 }
 // Transforma a "chave" técnica em um texto amigável pro ADM ler
-function rotulo(chave) {
+function rotulo(chaves) {
   const nomes = {
     mensagem_bom_dia: 'Mensagem de Bom Dia',
     mensagem_boa_noite: 'Mensagem de Boa Noite',
     mensagem_agradecimento: 'Mensagem de Agradecimento'
   }
-  return nomes[chave] || chave
+  return nomes[chaves] || chaves
 }
 
 // Carrega as configurações atuais ao abrir a tela
@@ -274,7 +274,7 @@ async function salvar() {
 
   try {
     for (const config of configuracoes.value) {
-      await atualizarConfiguracao(config.chave, config.valor)
+      await atualizarConfiguracao(config.chaves, config.valor)
     }
     mensagem.value = 'Configurações salvas com sucesso!'
   } catch (err) {

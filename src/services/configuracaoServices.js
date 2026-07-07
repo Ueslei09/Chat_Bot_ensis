@@ -14,10 +14,10 @@ export async function listarConfiguracoes() {
 
 /**
  * Atualiza o valor de uma configuração.
- * @param {string} chave - ex: 'mensagem_bom_dia'
+ * @param {string} chaves - ex: 'mensagem_bom_dia'
  * @param {string} valor - novo texto
  */
-export async function atualizarConfiguracao(chave, valor) {
-  const resposta = await api.put(`/configuracoes/${chave}`, { valor })
+export async function atualizarConfiguracao(chaves, valor) {
+  const resposta = await api.put(`/configuracoes/${chaves}`, { valor })
   return resposta.data
 }

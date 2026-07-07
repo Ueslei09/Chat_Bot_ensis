@@ -30,6 +30,9 @@ import ChamadosView from '@/views/ChamadosView.vue'
 import ConfiguracoesView from '@/views/ConfiguracaoView.vue'
 import { isAdmin, estaAutenticado } from '@/services/authServices.js'
 import AdminLoginView from '@/views/AdminloginView.vue'
+import ContatosView from '@/views/ContatosView.vue'
+import ConexoesView from '@/views/ConexoesView.vue'
+import RespostasRapidasView from '@/views/respostaRapidaView.vue'
 
 // =========================
 // CRIAÇÃO DO ROUTER
@@ -104,7 +107,32 @@ const router = createRouter({
       name: 'configuracoes',
       component: ConfiguracoesView,
       meta: { requerLogin: true, requerAdmin: true }
-    }
+    },// ============================================================
+// 2) ADICIONE ESTA ROTA dentro dos children do DefaultLayout
+// (path: '/app'), ao lado de 'chamados' e 'configuracoes'
+// ============================================================
+{
+  path: 'contatos',
+  name: 'contatos',
+  component: ContatosView,
+  meta: { requerLogin: true }
+},
+// ============================================================
+// 2) ADICIONE ESTA ROTA dentro dos children do DefaultLayout
+// (path: '/app'), ao lado de 'chamados' e 'contatos'
+// ============================================================
+{
+  path: 'conexoes',
+  name: 'conexoes',
+  component: ConexoesView,
+  meta: { requerLogin: true }
+},
+{
+  path: 'respostas-rapidas',
+  name: 'respostas-rapidas',
+  component: RespostasRapidasView,
+  meta: { requerLogin: true }
+}
       ]
     }
   ]

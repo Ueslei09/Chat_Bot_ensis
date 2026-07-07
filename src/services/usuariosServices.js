@@ -58,4 +58,22 @@ export async function alternarPermissaoApagar(id, permitir) {
   const resposta = await api.put(`/usuarios/${id}/permissao-apagar`, { permitir })
   return resposta.data
 }
+
+// ============================================================
+// ADICIONE ESTA FUNÇÃO no final do seu usuariosServices.js
+// ============================================================
  
+/** Lista id e nome dos usuários ativos (pra dropdown de transferência). */
+export async function listarAtendentes() {
+  const resposta = await api.get('/usuarios/atendentes')
+  return resposta.data
+}
+ // ============================================================
+// ADICIONE no usuariosServices.js
+// ============================================================
+
+/** Atualiza o nome do próprio usuário logado. */
+export async function atualizarMeuNome(nome) {
+  const resposta = await api.put('/usuarios/meu-perfil', { nome })
+  return resposta.data
+}

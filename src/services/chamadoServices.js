@@ -51,3 +51,11 @@ export async function fecharChamado(chamadoId) {
   const resposta = await api.put(`/chamados/${chamadoId}/fechar`)
   return resposta.data
 }
+/**
+ * Reabre um chamado fechado (volta pra fila).
+ * @param {number} chamadoId
+ */
+export async function reabrirChamado(chamadoId) {
+  const resposta = await api.put(`/chamados/${chamadoId}/reabrir`)
+  return resposta.data
+}
