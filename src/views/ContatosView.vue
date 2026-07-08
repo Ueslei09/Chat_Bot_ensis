@@ -15,7 +15,10 @@
 
       <div class="campo">
         <label>Número</label>
-        <input v-model="form.telefone" type="text" placeholder="5511999999999" required />
+        <input  v-model="form.telefone"
+         type="text"
+           :placeholder="form.eh_grupo ? 'ID do grupo (ex: 12036xxxx@g.us)' : '5511999999999'"
+            required />
       </div>
 
       <div class="campo">
@@ -26,6 +29,12 @@
           <option value="helpdesk">Helpdesk</option>
         </select>
       </div>
+      <div class="campo campo-checkbox">
+  <label>
+    <input type="checkbox" v-model="form.eh_grupo" />
+    É um grupo do WhatsApp?
+  </label>
+</div>
 
       <button type="submit" class="btn-salvar">
         {{ editandoId ? 'Salvar alterações' : 'Adicionar contato' }}
@@ -62,6 +71,9 @@
         <option value="whatsapp">WhatsApp</option>
         <option value="chat">Chat</option>
         <option value="helpdesk">Helpdesk</option>
+        <option value="">Pessoas e grupos</option>
+        <option value="false">Só pessoas</option>
+         <option value="true">Só grupos</option>
       </select>
 
       <label class="check-arquivados">
@@ -90,7 +102,8 @@
           <td colspan="4">Nenhum contato encontrado.</td>
         </tr>
         <tr v-for="contato in contatos" :key="contato.id">
-          <td>{{ contato.nome }}</td>
+          <td><span v-if="contato.eh_grupo" class="badge-grupo">👥 Grupo</span>
+            {{ contato.nome }}</td>
           <td>{{ contato.telefone }}</td>
           <td>
             <span class="badge-conexao" :class="contato.conexao">
@@ -143,7 +156,8 @@ import {
 } from '@/services/contatoServices.js'
 import { criarChamado, assumirChamado } from '@/services/chamadoServices.js'
  
-
+// Nova variável de filtro
+const filtroTipo = ref('')
 const router = useRouter()
 
 const contatos = ref([])
@@ -160,16 +174,19 @@ const editandoId = ref(null)
 const form = ref({
   nome: '',
   telefone: '',
-  conexao: 'whatsapp'
+  conexao: 'whatsapp',
+  eh_grupo: false
 })
 
+// carregarContatos() precisa mandar o novo filtro:
 async function carregarContatos() {
   carregando.value = true
   try {
     contatos.value = await listarContatos({
       busca: filtroBusca.value || undefined,
       conexao: filtroConexao.value || undefined,
-      arquivados: mostrarArquivados.value ? 'true' : undefined
+      arquivados: mostrarArquivados.value ? 'true' : undefined,
+      grupos: filtroTipo.value || undefined
     })
   } catch (err) {
     console.error('Erro ao carregar contatos:', err)
@@ -202,18 +219,21 @@ async function salvarContato() {
   }
 }
 
+// editarContato() precisa carregar esse campo também:
 function editarContato(contato) {
   editandoId.value = contato.id
   form.value = {
     nome: contato.nome,
     telefone: contato.telefone,
-    conexao: contato.conexao
+    conexao: contato.conexao,
+    eh_grupo: contato.eh_grupo || false
   }
 }
 
+// cancelarEdicao() também precisa resetar esse campo:
 function cancelarEdicao() {
   editandoId.value = null
-  form.value = { nome: '', telefone: '', conexao: 'whatsapp' }
+  form.value = { nome: '', telefone: '', conexao: 'whatsapp', eh_grupo: false }
 }
 
 async function excluir(id) {
@@ -499,6 +519,23 @@ onMounted(carregarContatos)
 .erro {
   color: #c0392b;
   font-size: 13px;
+}
+
+.campo-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.badge-grupo {
+  display: inline-block;
+  background: #e0ecff;
+  color: #1a3c6e;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-right: 6px;
 }
 
 

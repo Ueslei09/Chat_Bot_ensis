@@ -54,3 +54,20 @@ export function isAdmin() {
 export function estaAutenticado() {
   return !!localStorage.getItem('token')
 }
+
+/** Lê o nome do usuário logado, direto do token. */
+export function getNomeUsuario() {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+ 
+  try {
+    const payloadBase64 = token.split('.')[1]
+    const payload = JSON.parse(atob(payloadBase64))
+    return payload.nome || null
+  } catch {
+    return null
+  }
+}
+ 
+
+ 
