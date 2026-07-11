@@ -1,141 +1,64 @@
 <template>
   <div class="tela-chamados">
 
-    <!-- ==================== SIDEBAR ESQUERDA ==================== -->
-    <aside class="sidebar">
-      <nav class="abas">
-        <button :class="{ ativa: abaAtual === 'EM_ATENDIMENTO' }" @click="trocarAba('EM_ATENDIMENTO')">
-          Conversando
-        </button>
-        <button :class="{ ativa: abaAtual === 'ABERTO' }" @click="trocarAba('ABERTO')">
-          Fila
-        </button>
-        <button :class="{ ativa: abaAtual === 'FECHADO' }" @click="trocarAba('FECHADO')">
-          Chamados
-        </button>
-      </nav>
+    <ChatSidebar
+      :chamados="chamados"
+      :carregando="carregando"
+      :aba-atual="abaAtual"
+      :chamado-selecionado="chamadoSelecionado"
+      @trocar-aba="trocarAba"
+      @selecionar="selecionarChamado"
+    />
 
-      <ul class="lista-chamados">
-        <li v-if="carregando" class="vazio">Carregando...</li>
-        <li v-else-if="chamados.length === 0" class="vazio">Nenhum chamado aqui.</li>
-        <li
-          v-for="chamado in chamados"
-          :key="chamado.id"
-          class="item-chamado"
-          :class="{ selecionado: chamadoSelecionado?.id === chamado.id }"
-          @click="selecionarChamado(chamado)"
-        >
-          <span class="nome">Chamado #{{ chamado.id }}</span>
-          <span class="status">{{ chamado.status }}</span>
-        </li>
-      </ul>
-    </aside>
-
-    <!-- ==================== ÁREA DE CHAT ==================== -->
     <main class="area-chat">
       <div v-if="!chamadoSelecionado" class="chat-vazio">
         Selecione um chamado ao lado para abrir a conversa.
       </div>
 
-      <div v-else class="chat-cabecalho">
-        <div class="topo">
-          <div class="titulo">
-            <strong>Chamado #{{ chamadoSelecionado.id }}</strong>
-            <span class="status-badge">{{ chamadoSelecionado.status }}</span>
-          </div>
-
-          <div class="icones-acao">
-            <button v-if="abaAtual === 'ABERTO'" class="icone-btn" title="Assumir chamado" @click="assumir">✅</button>
-            <template v-if="abaAtual === 'EM_ATENDIMENTO'">
-              <button class="icone-btn" title="Transferir chamado" @click="abrirModalTransferir">🔄</button>
-              <button class="icone-btn" title="Fechar chamado" @click="abrirModalFechar">✂️</button>
-            </template>
-            <button v-if="abaAtual === 'FECHADO'" class="icone-btn" title="Reabrir chamado" @click="reabrir">↩️</button>
-          </div>
-        </div>
+      <div v-else class="chat-corpo">
+        <ChatHeader
+          :chamado="chamadoSelecionado"
+          :aba-atual="abaAtual"
+          @assumir="assumir"
+          @abrir-transferir="abrirModalTransferir"
+          @abrir-fechar="abrirModalFechar"
+          @reabrir="reabrir"
+        />
 
         <p v-if="mensagemAcao" class="mensagem-acao">{{ mensagemAcao }}</p>
 
-        <!-- ==================== LISTA DE MENSAGENS ==================== -->
-        <div class="mensagens" ref="areaMensagens">
-          <div v-if="carregandoMensagens" class="mensagens-vazio">Carregando mensagens...</div>
-          <div v-else-if="mensagens.length === 0" class="mensagens-vazio">
-            Nenhuma mensagem ainda.
-          </div>
+        <ChatMessages
+          :mensagens="mensagens"
+          :carregando="carregandoMensagens"
+          :meu-id="meuId"
+          :sou-admin="admin"
+          @responder="responder"
+          @encaminhar="abrirModalEncaminhar"
+          @editar="iniciarEdicao"
+          @apagar="apagar"
+        />
 
-          <template v-for="msg in mensagens" :key="msg.id">
-
-            <!-- Mensagem de SISTEMA: faixa cinza centralizada -->
-            <div v-if="msg.autor_tipo === 'SISTEMA'" class="faixa-sistema">
-              {{ msg.conteudo }} — {{ formatarHora(msg.criada_em) }}
-            </div>
-
-            <!-- Mensagem normal: bolha de chat -->
-            <div
-              v-else
-              class="bolha"
-              :class="msg.autor_tipo === 'CLIENTE' ? 'recebida' : 'enviada'"
-            >
-              <!-- Texto -->
-              <p v-if="msg.tipo === 'TEXTO'" class="conteudo-texto">{{ msg.conteudo }}</p>
-
-              <!-- Imagem -->
-              <div v-else-if="msg.tipo === 'IMAGEM'" class="conteudo-midia">
-                <img :src="urlArquivo(msg.conteudo)" alt="Imagem enviada" />
-                <a :href="urlArquivo(msg.conteudo)" download class="link-download">⬇️ Baixar imagem</a>
-              </div>
-
-              <!-- Áudio -->
-              <div v-else-if="msg.tipo === 'AUDIO'" class="conteudo-midia">
-                <audio controls :src="urlArquivo(msg.conteudo)"></audio>
-                <a :href="urlArquivo(msg.conteudo)" download class="link-download">⬇️ Baixar áudio</a>
-              </div>
-
-              <!-- PDF -->
-              <div v-else-if="msg.tipo === 'PDF'" class="conteudo-midia">
-                <a :href="urlArquivo(msg.conteudo)" target="_blank" class="link-pdf">📄 Abrir PDF</a>
-                <a :href="urlArquivo(msg.conteudo)" download class="link-download">⬇️ Baixar</a>
-              </div>
-
-              <div class="rodape-bolha">
-                <span class="hora">{{ formatarHora(msg.criada_em) }}</span>
-                <button
-                  v-if="podeApagar(msg)"
-                  class="btn-apagar-msg"
-                  title="Apagar mensagem"
-                  @click="apagar(msg.id)"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-          </template>
-        </div>
-
-        <!-- ==================== CAMPO DE ENVIO ==================== -->
-        <form class="campo-envio" @submit.prevent="enviar">
-          <label class="btn-anexo" title="Anexar arquivo">
-            +
-            <input type="file" accept="image/*,audio/*,application/pdf" @change="enviarArquivoSelecionado" hidden />
-          </label>
-
-          <input v-model="novaMensagem" type="text" placeholder="Digite uma mensagem..." />
-
-          <button type="submit" :disabled="!novaMensagem.trim()">Enviar</button>
-        </form>
+        <ChatFooter
+          :respondendo-a="respondendoA"
+          :editando="!!editandoId"
+          :texto-inicial="textoParaEditar"
+          @enviar="enviar"
+          @enviar-arquivo="enviarArquivoSelecionado"
+          @confirmar-edicao="confirmarEdicao"
+          @cancelar-edicao="cancelarEdicao"
+          @cancelar-resposta="respondendoA = null"
+        />
       </div>
     </main>
 
-    <!-- ==================== MODAL: TRANSFERIR CHAMADO ==================== -->
+    <!-- ==================== MODAL: TRANSFERIR ==================== -->
     <div v-if="modalTransferirAberto" class="modal-overlay" @click.self="fecharModais">
       <div class="modal-box">
         <h3>Transferir chamado</h3>
         <label>Transferir para atendente</label>
         <select v-model="atendenteEscolhido">
           <option value="" disabled>Selecione...</option>
-          <option v-for="atendente in atendentes" :key="atendente.id" :value="atendente.id">
-            {{ atendente.nome }}
-          </option>
+          <option v-for="atendente in atendentes" :key="atendente.id" :value="atendente.id">{{ atendente.nome }}</option>
         </select>
         <label>Adicionar comentário</label>
         <textarea v-model="comentarioTransferir" rows="3" placeholder="Adicionar comentário"></textarea>
@@ -146,7 +69,7 @@
       </div>
     </div>
 
-    <!-- ==================== MODAL: FECHAR CHAMADO ==================== -->
+    <!-- ==================== MODAL: FECHAR ==================== -->
     <div v-if="modalFecharAberto" class="modal-overlay" @click.self="fecharModais">
       <div class="modal-box">
         <div class="modal-icone-alerta">!</div>
@@ -161,12 +84,38 @@
       </div>
     </div>
 
+    <!-- ==================== MODAL: ENCAMINHAR ==================== -->
+    <div v-if="modalEncaminharAberto" class="modal-overlay" @click.self="fecharModalEncaminhar">
+      <div class="modal-box">
+        <h3>Encaminhar mensagem</h3>
+        <label>Encaminhar para o chamado</label>
+        <select v-model="chamadoDestinoEncaminhar">
+          <option value="" disabled>Selecione...</option>
+          <option v-for="chamado in chamadosParaEncaminhar" :key="chamado.id" :value="chamado.id">
+            Chamado #{{ chamado.id }}
+          </option>
+        </select>
+        <div class="modal-botoes">
+          <button class="btn-cancelar" @click="fecharModalEncaminhar">Cancelar</button>
+          <button class="btn-confirmar" :disabled="!chamadoDestinoEncaminhar" @click="confirmarEncaminhar">
+            Encaminhar
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+
+import ChatSidebar from '../../components/chat/ChatSidebar.vue'
+import ChatHeader from '../../components/chat/ChatHeader.vue'
+import ChatMessages from '../../components/chat/ChatMessages.vue'
+import ChatFooter from '../../components/chat/ChatFooter.vue'
+
 import {
   listarChamadosPorStatus,
   assumirChamado,
@@ -180,107 +129,22 @@ import {
   enviarMensagem,
   enviarArquivo,
   apagarMensagem,
-  urlArquivo
+  editarMensagem,
+  encaminharMensagem
 } from '@/services/mensagensServices.js'
-import { isAdmin } from '@/services/authServices.js'
+import { isAdmin, getIdUsuario } from '@/services/authServices.js'
 
 const route = useRoute()
 
+// ------------------------------------------------------------
+// CHAMADOS (sidebar)
+// ------------------------------------------------------------
 const abaAtual = ref('EM_ATENDIMENTO')
 const chamados = ref([])
 const carregando = ref(false)
 const chamadoSelecionado = ref(null)
 const mensagemAcao = ref('')
 
-const atendentes = ref([])
-const atendenteEscolhido = ref('')
-const comentarioTransferir = ref('')
-const resumoFechamento = ref('')
-const modalTransferirAberto = ref(false)
-const modalFecharAberto = ref(false)
-
-// ------------------------------------------------------------
-// MENSAGENS
-// ------------------------------------------------------------
-const mensagens = ref([])
-const carregandoMensagens = ref(false)
-const novaMensagem = ref('')
-const areaMensagens = ref(null)
-const admin = isAdmin()
-
-async function carregarMensagens() {
-  if (!chamadoSelecionado.value) return
-  carregandoMensagens.value = true
-  try {
-    mensagens.value = await listarMensagens(chamadoSelecionado.value.id)
-    await nextTick()
-    rolarParaFinal()
-  } catch (err) {
-    console.error('Erro ao carregar mensagens:', err)
-  } finally {
-    carregandoMensagens.value = false
-  }
-}
-
-function rolarParaFinal() {
-  if (areaMensagens.value) {
-    areaMensagens.value.scrollTop = areaMensagens.value.scrollHeight
-  }
-}
-
-function formatarHora(dataString) {
-  const data = new Date(dataString)
-  return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-}
-
-// ADM sempre pode apagar; USER só se tiver a mensagem sido dele (checagem visual;
-// a validação real de verdade acontece no backend)
-function podeApagar(msg) {
-  return admin
-}
-
-async function enviar() {
-  if (!novaMensagem.value.trim()) return
-  try {
-    await enviarMensagem({
-      chamado_id: chamadoSelecionado.value.id,
-      tipo: 'TEXTO',
-      conteudo: novaMensagem.value
-    })
-    novaMensagem.value = ''
-    await carregarMensagens()
-  } catch (err) {
-    console.error('Erro ao enviar mensagem:', err)
-  }
-}
-
-async function enviarArquivoSelecionado(evento) {
-  const arquivo = evento.target.files[0]
-  if (!arquivo || !chamadoSelecionado.value) return
-
-  try {
-    await enviarArquivo(chamadoSelecionado.value.id, arquivo)
-    await carregarMensagens()
-  } catch (err) {
-    console.error('Erro ao enviar arquivo:', err)
-  } finally {
-    evento.target.value = ''
-  }
-}
-
-async function apagar(mensagemId) {
-  if (!confirm('Apagar esta mensagem?')) return
-  try {
-    await apagarMensagem(mensagemId)
-    await carregarMensagens()
-  } catch (err) {
-    console.error('Erro ao apagar mensagem:', err)
-  }
-}
-
-// ------------------------------------------------------------
-// CHAMADOS (sidebar)
-// ------------------------------------------------------------
 async function carregarChamados() {
   carregando.value = true
   try {
@@ -289,14 +153,6 @@ async function carregarChamados() {
     console.error('Erro ao carregar chamados:', err)
   } finally {
     carregando.value = false
-  }
-}
-
-async function carregarAtendentes() {
-  try {
-    atendentes.value = await listarAtendentes()
-  } catch (err) {
-    console.error('Erro ao carregar atendentes:', err)
   }
 }
 
@@ -312,6 +168,8 @@ watch(abaAtual, carregarChamados)
 async function selecionarChamado(chamado) {
   chamadoSelecionado.value = chamado
   mensagemAcao.value = ''
+  respondendoA.value = null
+  editandoId.value = null
   await carregarMensagens()
 }
 
@@ -319,6 +177,35 @@ async function assumir() {
   await assumirChamado(chamadoSelecionado.value.id)
   await carregarChamados()
   chamadoSelecionado.value = null
+}
+
+async function reabrir() {
+  try {
+    await reabrirChamado(chamadoSelecionado.value.id)
+    mensagemAcao.value = 'Chamado reaberto! Ele voltou pra fila.'
+    await carregarChamados()
+    chamadoSelecionado.value = null
+  } catch (err) {
+    mensagemAcao.value = err.response?.data?.erro || 'Erro ao reabrir chamado'
+  }
+}
+
+// ------------------------------------------------------------
+// TRANSFERIR / FECHAR (modais)
+// ------------------------------------------------------------
+const atendentes = ref([])
+const atendenteEscolhido = ref('')
+const comentarioTransferir = ref('')
+const resumoFechamento = ref('')
+const modalTransferirAberto = ref(false)
+const modalFecharAberto = ref(false)
+
+async function carregarAtendentes() {
+  try {
+    atendentes.value = await listarAtendentes()
+  } catch (err) {
+    console.error('Erro ao carregar atendentes:', err)
+  }
 }
 
 function abrirModalTransferir() {
@@ -373,17 +260,131 @@ async function fechar() {
   }
 }
 
-async function reabrir() {
+// ------------------------------------------------------------
+// MENSAGENS
+// ------------------------------------------------------------
+const mensagens = ref([])
+const carregandoMensagens = ref(false)
+const admin = isAdmin()
+const meuId = getIdUsuario()
+
+async function carregarMensagens() {
+  if (!chamadoSelecionado.value) return
+  carregandoMensagens.value = true
   try {
-    await reabrirChamado(chamadoSelecionado.value.id)
-    mensagemAcao.value = 'Chamado reaberto! Ele voltou pra fila.'
-    await carregarChamados()
-    chamadoSelecionado.value = null
+    mensagens.value = await listarMensagens(chamadoSelecionado.value.id)
   } catch (err) {
-    mensagemAcao.value = err.response?.data?.erro || 'Erro ao reabrir chamado'
+    console.error('Erro ao carregar mensagens:', err)
+  } finally {
+    carregandoMensagens.value = false
   }
 }
 
+async function enviar(texto) {
+  try {
+    await enviarMensagem({
+      chamado_id: chamadoSelecionado.value.id,
+      tipo: 'TEXTO',
+      conteudo: texto,
+      resposta_a: respondendoA.value?.id || null
+    })
+    respondendoA.value = null
+    await carregarMensagens()
+  } catch (err) {
+    console.error('Erro ao enviar mensagem:', err)
+  }
+}
+
+async function enviarArquivoSelecionado(arquivo) {
+  if (!arquivo || !chamadoSelecionado.value) return
+  try {
+    await enviarArquivo(chamadoSelecionado.value.id, arquivo)
+    await carregarMensagens()
+  } catch (err) {
+    console.error('Erro ao enviar arquivo:', err)
+  }
+}
+
+async function apagar(mensagemId) {
+  if (!confirm('Apagar esta mensagem?')) return
+  try {
+    await apagarMensagem(mensagemId)
+    await carregarMensagens()
+  } catch (err) {
+    console.error('Erro ao apagar mensagem:', err)
+  }
+}
+
+// ------------------------------------------------------------
+// RESPONDER
+// ------------------------------------------------------------
+const respondendoA = ref(null)
+function responder(msg) {
+  editandoId.value = null
+  respondendoA.value = msg
+}
+
+// ------------------------------------------------------------
+// EDITAR (o texto fica no ChatFooter, igual WhatsApp)
+// ------------------------------------------------------------
+const editandoId = ref(null)
+const textoParaEditar = ref('')
+
+function iniciarEdicao(msg) {
+  respondendoA.value = null
+  editandoId.value = msg.id
+  textoParaEditar.value = msg.conteudo
+}
+function cancelarEdicao() {
+  editandoId.value = null
+  textoParaEditar.value = ''
+}
+async function confirmarEdicao(texto) {
+  try {
+    await editarMensagem(editandoId.value, texto)
+    editandoId.value = null
+    textoParaEditar.value = ''
+    await carregarMensagens()
+  } catch (err) {
+    console.error('Erro ao editar mensagem:', err)
+  }
+}
+
+// ------------------------------------------------------------
+// ENCAMINHAR
+// ------------------------------------------------------------
+const modalEncaminharAberto = ref(false)
+const mensagemParaEncaminhar = ref(null)
+const chamadoDestinoEncaminhar = ref('')
+const chamadosParaEncaminhar = ref([])
+
+async function abrirModalEncaminhar(msg) {
+  mensagemParaEncaminhar.value = msg
+  chamadoDestinoEncaminhar.value = ''
+  try {
+    chamadosParaEncaminhar.value = await listarChamadosPorStatus('EM_ATENDIMENTO')
+  } catch (err) {
+    console.error('Erro ao carregar chamados para encaminhar:', err)
+  }
+  modalEncaminharAberto.value = true
+}
+function fecharModalEncaminhar() {
+  modalEncaminharAberto.value = false
+  mensagemParaEncaminhar.value = null
+}
+async function confirmarEncaminhar() {
+  try {
+    await encaminharMensagem(mensagemParaEncaminhar.value.id, chamadoDestinoEncaminhar.value)
+    fecharModalEncaminhar()
+    mensagemAcao.value = 'Mensagem encaminhada com sucesso!'
+  } catch (err) {
+    console.error('Erro ao encaminhar mensagem:', err)
+  }
+}
+
+// ------------------------------------------------------------
+// INICIALIZAÇÃO
+// ------------------------------------------------------------
 onMounted(async () => {
   await carregarChamados()
   carregarAtendentes()
@@ -402,63 +403,6 @@ onMounted(async () => {
   height: calc(100vh - 56px);
   position: relative;
 }
-
-.sidebar {
-  width: 300px;
-  background: #fff;
-  border-right: 1px solid #ddd;
-  display: flex;
-  flex-direction: column;
-}
-.abas {
-  display: flex;
-  border-bottom: 1px solid #eee;
-}
-.abas button {
-  flex: 1;
-  padding: 12px 8px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 13px;
-  color: #555;
-}
-.abas button.ativa {
-  border-bottom: 2px solid #1a3c6e;
-  font-weight: bold;
-  color: #1a3c6e;
-}
-.lista-chamados {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  flex: 1;
-}
-.vazio {
-  padding: 16px;
-  color: #999;
-  font-size: 13px;
-  text-align: center;
-}
-.item-chamado {
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-}
-.item-chamado:hover {
-  background: #f7f9fc;
-}
-.item-chamado.selecionado {
-  background: #e8f0fe;
-}
-.item-chamado .status {
-  font-size: 11px;
-  color: #888;
-}
-
 .area-chat {
   flex: 1;
   background: #eae6df;
@@ -470,46 +414,10 @@ onMounted(async () => {
   color: #888;
   font-size: 14px;
 }
-.chat-cabecalho {
+.chat-corpo {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-.topo {
-  background: #fff;
-  padding: 14px 20px;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.titulo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.status-badge {
-  font-size: 12px;
-  color: #666;
-  background: #f0f0f0;
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-.icones-acao {
-  display: flex;
-  gap: 6px;
-}
-.icone-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 6px;
-  line-height: 1;
-}
-.icone-btn:hover {
-  background: #f0f0f0;
 }
 .mensagem-acao {
   padding: 8px 20px;
@@ -519,127 +427,7 @@ onMounted(async () => {
   background: #eef3fb;
 }
 
-/* ---------- MENSAGENS ---------- */
-.mensagens {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.mensagens-vazio {
-  margin: auto;
-  color: #999;
-  font-size: 13px;
-}
-.faixa-sistema {
-  align-self: center;
-  background: #dbe3ee;
-  color: #444;
-  font-size: 12px;
-  padding: 6px 14px;
-  border-radius: 12px;
-  margin: 6px 0;
-  text-align: center;
-}
-.bolha {
-  max-width: 60%;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #fff;
-}
-.bolha.enviada {
-  align-self: flex-end;
-  background: #d9fdd3;
-}
-.bolha.recebida {
-  align-self: flex-start;
-  background: #fff;
-}
-.conteudo-texto {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.conteudo-midia {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.conteudo-midia img {
-  max-width: 240px;
-  border-radius: 6px;
-}
-.conteudo-midia audio {
-  max-width: 240px;
-}
-.link-pdf,
-.link-download {
-  font-size: 12px;
-  color: #1a3c6e;
-  text-decoration: none;
-}
-.link-pdf:hover,
-.link-download:hover {
-  text-decoration: underline;
-}
-.rodape-bolha {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
-}
-.hora {
-  font-size: 10px;
-  color: #888;
-}
-.btn-apagar-msg {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-  opacity: 0.6;
-}
-.btn-apagar-msg:hover {
-  opacity: 1;
-}
-
-/* ---------- CAMPO DE ENVIO ---------- */
-.campo-envio {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: #fff;
-  border-top: 1px solid #ddd;
-}
-.btn-anexo {
-  font-size: 20px;
-  cursor: pointer;
-  padding: 6px;
-}
-.campo-envio input[type="text"] {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-}
-.campo-envio button {
-  background: #1a3c6e;
-  color: #fff;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-.campo-envio button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ---------- MODAIS (iguais aos que já tínhamos) ---------- */
+/* ---------- MODAIS (permanecem no orquestrador) ---------- */
 .modal-overlay {
   position: fixed;
   inset: 0;

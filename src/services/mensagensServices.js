@@ -50,3 +50,17 @@ export function urlArquivo(caminho) {
   const baseURL = api.defaults.baseURL
   return `${baseURL}${caminho}`
 }
+
+/** Edita o texto de uma mensagem já enviada. */
+export async function editarMensagem(id, conteudo) {
+  const resposta = await api.put(`/mensagens/${id}`, { conteudo })
+  return resposta.data
+}
+ 
+/** Encaminha uma mensagem existente para outro chamado. */
+export async function encaminharMensagem(id, chamadoIdDestino) {
+  const resposta = await api.post(`/mensagens/${id}/encaminhar`, {
+    chamado_id_destino: chamadoIdDestino
+  })
+  return resposta.data
+}

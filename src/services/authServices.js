@@ -68,6 +68,20 @@ export function getNomeUsuario() {
     return null
   }
 }
+
+/** Lê o id do usuário logado, direto do token. */
+export function getIdUsuario() {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+ 
+  try {
+    const payloadBase64 = token.split('.')[1]
+    const payload = JSON.parse(atob(payloadBase64))
+    return payload.id || null
+  } catch {
+    return null
+  }
+}
  
 
  
