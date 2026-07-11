@@ -31,10 +31,11 @@ export async function apagarMensagem(mensagemId) {
  * @param {number} chamadoId
  * @param {File} arquivo - objeto File vindo de um <input type="file">
  */
-export async function enviarArquivo(chamadoId, arquivo) {
+export async function enviarArquivo(chamadoId, arquivo, legenda = '') {
   const formData = new FormData()
   formData.append('chamado_id', chamadoId)
   formData.append('arquivo', arquivo)
+  if (legenda) formData.append('legenda', legenda)
  
   const resposta = await api.post('/mensagens/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
@@ -64,3 +65,9 @@ export async function encaminharMensagem(id, chamadoIdDestino) {
   })
   return resposta.data
 }
+/**
+ * Envia um arquivo (imagem, áudio ou PDF), com legenda opcional.
+ * @param {number} chamadoId
+ * @param {File} arquivo
+ * @param {string} [legenda]
+ */

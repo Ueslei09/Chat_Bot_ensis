@@ -17,12 +17,13 @@
 
       <div v-else class="chat-corpo">
         <ChatHeader
-          :chamado="chamadoSelecionado"
-          :aba-atual="abaAtual"
-          @assumir="assumir"
-          @abrir-transferir="abrirModalTransferir"
-          @abrir-fechar="abrirModalFechar"
-          @reabrir="reabrir"
+           :chamado="chamadoSelecionado"
+  :aba-atual="abaAtual"
+  @assumir="assumir"
+  @abrir-transferir="abrirModalTransferir"
+  @abrir-fechar="abrirModalFechar"
+  @reabrir="reabrir"
+  @abrir-detalhes="abrirDetalhes"
         />
 
         <p v-if="mensagemAcao" class="mensagem-acao">{{ mensagemAcao }}</p>
@@ -39,14 +40,21 @@
         />
 
         <ChatFooter
-          :respondendo-a="respondendoA"
-          :editando="!!editandoId"
-          :texto-inicial="textoParaEditar"
-          @enviar="enviar"
-          @enviar-arquivo="enviarArquivoSelecionado"
-          @confirmar-edicao="confirmarEdicao"
-          @cancelar-edicao="cancelarEdicao"
-          @cancelar-resposta="respondendoA = null"
+         :usuario-logado="usuarioLogado"
+          npm run :chamado="chamadoSelecionado"
+          :pode-assumir="podeAssumirChamado"
+  :modo-somente-leitura="modoSomenteLeitura"
+  :respondendo-a="respondendoA"
+  :editando="!!editandoId"
+  :texto-inicial="textoParaEditar"
+  @enviar="enviar"
+  @enviar-arquivo="enviarArquivoSelecionado"
+  @confirmar-edicao="confirmarEdicao"
+  @cancelar-edicao="cancelarEdicao"
+  @cancelar-resposta="respondendoA = null"
+  @assumir-chamado="assumirForcado"
+  @solicitar-transferencia="solicitarTransferencia"
+  @reabrir-chamado="reabrir"
         />
       </div>
     </main>
@@ -103,6 +111,15 @@
         </div>
       </div>
     </div>
+    <ChatDrawer
+  :aberto="detalhesAbertos"
+  :detalhes="detalhesChamado"
+  :carregando="carregandoDetalhes"
+  @fechar="detalhesAbertos = false"
+  @recarregar="carregarDetalhes"
+  @transferir="detalhesAbertos = false; abrirModalTransferir()"
+  @encerrar="detalhesAbertos = false; abrirModalFechar()"
+/>
 
   </div>
 </template>
@@ -115,15 +132,11 @@ import ChatSidebar from '../../components/chat/ChatSidebar.vue'
 import ChatHeader from '../../components/chat/ChatHeader.vue'
 import ChatMessages from '../../components/chat/ChatMessages.vue'
 import ChatFooter from '../../components/chat/ChatFooter.vue'
-
-import {
-  listarChamadosPorStatus,
-  assumirChamado,
-  fecharChamado,
-  transferirChamado,
-  reabrirChamado
-} from '@/services/chamadoServices.js'
+import ChatDrawer from '../../components/chat/ChatDrawer.vue'
 import { listarAtendentes } from '@/services/usuariosServices.js'
+
+
+
 import {
   listarMensagens,
   enviarMensagem,
@@ -132,7 +145,23 @@ import {
   editarMensagem,
   encaminharMensagem
 } from '@/services/mensagensServices.js'
-import { isAdmin, getIdUsuario } from '@/services/authServices.js'
+
+
+
+
+
+import {
+  listarChamadosPorStatus,
+  assumirChamado,
+  fecharChamado,
+  transferirChamado,
+  reabrirChamado,
+  buscarDetalhesChamado
+} from '@/services/chamadoServices.js'
+
+
+import { isAdmin, getIdUsuario, getNomeUsuario } from '@/services/authServices.js'
+
 
 const route = useRoute()
 
@@ -144,6 +173,49 @@ const chamados = ref([])
 const carregando = ref(false)
 const chamadoSelecionado = ref(null)
 const mensagemAcao = ref('')
+// Estado do painel lateral
+const detalhesAbertos = ref(false)
+const detalhesChamado = ref(null)
+const carregandoDetalhes = ref(false)
+
+// Objeto simples com os dados do usuário logado, pro ChatFooter usar
+const usuarioLogado = computed(() => ({
+  id: meuId,
+  nome: getNomeUsuario(),
+  perfil: admin ? 'ADM' : 'USER'
+}))
+
+// Só ADM pode "forçar assumir" um chamado que já é de outro atendente
+const podeAssumirChamado = computed(() => admin)
+ 
+// Verdadeiro quando o chamado está EM_ATENDIMENTO mas NÃO é do usuário logado
+const modoSomenteLeitura = computed(() => {
+  if (!chamadoSelecionado.value) return false
+  return (
+    chamadoSelecionado.value.status === 'EM_ATENDIMENTO' &&
+    chamadoSelecionado.value.atendente_id !== meuId
+  )
+})
+
+// Chamado pelo botão "Assumir Atendimento" no estado bloqueado (só ADM vê esse botão)
+// Reaproveita a rota de TRANSFERIR, passando o próprio usuário como novo atendente
+async function assumirForcado() {
+  try {
+    await transferirChamado(chamadoSelecionado.value.id, meuId)
+    mensagemAcao.value = 'Você assumiu o chamado.'
+    await carregarChamados()
+    await carregarMensagens()
+  } catch (err) {
+    mensagemAcao.value = err.response?.data?.erro || 'Erro ao assumir chamado'
+  }
+}
+
+// Chamado pelo botão "Solicitar Transferência" (usuário comum, sem permissão de forçar)
+// Por enquanto só avisa na tela — no futuro pode virar uma notificação de verdade
+// pro atendente atual ou pro ADM
+function solicitarTransferencia() {
+  mensagemAcao.value = 'Solicitação de transferência enviada ao atendente responsável.'
+}
 
 async function carregarChamados() {
   carregando.value = true
@@ -380,6 +452,23 @@ async function confirmarEncaminhar() {
   } catch (err) {
     console.error('Erro ao encaminhar mensagem:', err)
   }
+}
+
+async function carregarDetalhes() {
+  if (!chamadoSelecionado.value) return
+  carregandoDetalhes.value = true
+  try {
+    detalhesChamado.value = await buscarDetalhesChamado(chamadoSelecionado.value.id)
+  } catch (err) {
+    console.error('Erro ao carregar detalhes do chamado:', err)
+  } finally {
+    carregandoDetalhes.value = false
+  }
+}
+ 
+async function abrirDetalhes() {
+  detalhesAbertos.value = true
+  await carregarDetalhes()
 }
 
 // ------------------------------------------------------------

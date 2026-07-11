@@ -1,6 +1,6 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "components/chat/AudioPalyer.vue"],
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "components/chat/AudioPalyer.vue", "components/chat/ClienteCard.vue", "components/chat/ArquivoClientes.vue", "components/chat/Historicochamados.vue", "components/chat/ChatDrawer.vue"],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "noUncheckedIndexedAccess": true,

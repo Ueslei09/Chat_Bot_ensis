@@ -59,3 +59,16 @@ export async function reabrirChamado(chamadoId) {
   const resposta = await api.put(`/chamados/${chamadoId}/reabrir`)
   return resposta.data
 }
+
+/** Busca os detalhes completos de um chamado (cliente, histórico, arquivos). */
+export async function buscarDetalhesChamado(chamadoId) {
+  const resposta = await api.get(`/chamados/${chamadoId}/detalhes`)
+  return resposta.data
+}
+ 
+/** Atualiza tags e observações de um chamado. */
+export async function atualizarDetalhesChamado(chamadoId, dados) {
+  const resposta = await api.put(`/chamados/${chamadoId}/detalhes`, dados)
+  return resposta.data
+}
+ 
