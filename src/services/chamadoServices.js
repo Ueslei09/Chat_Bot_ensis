@@ -71,4 +71,16 @@ export async function atualizarDetalhesChamado(chamadoId, dados) {
   const resposta = await api.put(`/chamados/${chamadoId}/detalhes`, dados)
   return resposta.data
 }
+
+/** Retoma um chamado que estava aguardando cliente (volta pra EM_ATENDIMENTO). */
+export async function retomarChamado(chamadoId) {
+  const resposta = await api.put(`/chamados/${chamadoId}/retomar`)
+  return resposta.data
+}
+ 
+/** Marca um chamado em atendimento como aguardando resposta do cliente. */
+export async function marcarAguardandoCliente(chamadoId) {
+  const resposta = await api.put(`/chamados/${chamadoId}/aguardar-cliente`)
+  return resposta.data
+}
  

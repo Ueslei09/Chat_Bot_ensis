@@ -40,21 +40,26 @@
         />
 
         <ChatFooter
-         :usuario-logado="usuarioLogado"
-          npm run :chamado="chamadoSelecionado"
-          :pode-assumir="podeAssumirChamado"
-  :modo-somente-leitura="modoSomenteLeitura"
+        :usuario="usuarioLogado"
+  :chamado="chamadoSelecionado"
+  :status="chamadoSelecionado?.status"
+  :pode-assumir="podeAssumirChamado"
+  :pode-reabrir="true"
   :respondendo-a="respondendoA"
   :editando="!!editandoId"
   :texto-inicial="textoParaEditar"
-  @enviar="enviar"
-  @enviar-arquivo="enviarArquivoSelecionado"
+  @enviar-mensagem="enviar"
+  @anexar-arquivo="enviarArquivoSelecionado"
+  @gravar-audio="enviarArquivoSelecionado"
   @confirmar-edicao="confirmarEdicao"
   @cancelar-edicao="cancelarEdicao"
   @cancelar-resposta="respondendoA = null"
   @assumir-chamado="assumirForcado"
   @solicitar-transferencia="solicitarTransferencia"
+  @retomar-chamado="retomarAtendimento"
   @reabrir-chamado="reabrir"
+  @voltar-para-fila="voltarParaFila"
+  @visualizar-historico="abrirDetalhes"
         />
       </div>
     </main>
@@ -156,7 +161,8 @@ import {
   fecharChamado,
   transferirChamado,
   reabrirChamado,
-  buscarDetalhesChamado
+  buscarDetalhesChamado,
+  retomarChamado,
 } from '@/services/chamadoServices.js'
 
 
@@ -177,6 +183,7 @@ const mensagemAcao = ref('')
 const detalhesAbertos = ref(false)
 const detalhesChamado = ref(null)
 const carregandoDetalhes = ref(false)
+
 
 // Objeto simples com os dados do usuário logado, pro ChatFooter usar
 const usuarioLogado = computed(() => ({
@@ -215,6 +222,23 @@ async function assumirForcado() {
 // pro atendente atual ou pro ADM
 function solicitarTransferencia() {
   mensagemAcao.value = 'Solicitação de transferência enviada ao atendente responsável.'
+}
+
+async function retomarAtendimento() {
+  try {
+    await retomarChamado(chamadoSelecionado.value.id)
+    mensagemAcao.value = 'Atendimento retomado!'
+    await carregarChamados()
+    // Atualiza o status do chamado selecionado localmente, sem precisar re-selecionar
+    chamadoSelecionado.value = { ...chamadoSelecionado.value, status: 'EM_ATENDIMENTO' }
+  } catch (err) {
+    mensagemAcao.value = err.response?.data?.erro || 'Erro ao retomar atendimento'
+  }
+}
+
+// Chamado pelo evento @voltar-para-fila (Estado 2 do ChatFooter, botão secundário)
+function voltarParaFila() {
+  chamadoSelecionado.value = null
 }
 
 async function carregarChamados() {

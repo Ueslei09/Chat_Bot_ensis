@@ -45,7 +45,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login, logout, isAdmin } from '@/services/authServices.js'
 // Imagem de fundo (mesma que você já tinha)
-import bgImage from '@/assets/imagenschatbot/imagenslogichatbot.jpeg'
+import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
 const email = ref('')
 const senha = ref('')

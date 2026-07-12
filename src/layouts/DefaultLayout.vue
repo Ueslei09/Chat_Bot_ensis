@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar navbar-expand-lg bg-body-tertiary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">ChatBot Ensis</a>
+      <a class="navbar-brand" href="#">Moove Chat-Multi</a>
 
       <div class="menu-links">
         <router-link to="/app/chamados">Chamados</router-link>

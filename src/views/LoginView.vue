@@ -10,7 +10,7 @@
 
     <!-- Cartão do formulário, flutuando centralizado por cima da imagem -->
     <div class="login-box">
-      <h3 class="mb-4 text-center">ChatBot Ensis</h3>
+      <h3 class="mb-4 text-center">Moove Chat-Multi</h3>
 
       <form @submit.prevent="login">
         <div class="mb-3">
@@ -67,7 +67,7 @@ import { useRouter } from 'vue-router'
 // ✅ certo (é aqui que a função login realmente está)
 import { login as loginApi } from '@/services/authServices.js'
 // Imagem de fundo (mesma que você já tinha)
-import bgImage from '@/assets/imagenschatbot/imagenslogichatbot.jpeg'
+import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
 const usuario = ref('')
 const senha = ref('')
