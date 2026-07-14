@@ -1,4 +1,5 @@
-import api from './api'
+// Ajustado para importar a constante nomeada { api } do api.js
+import { api } from './api'
 
 /**
  * Lista as mensagens de um chamado específico.
@@ -65,9 +66,4 @@ export async function encaminharMensagem(id, chamadoIdDestino) {
   })
   return resposta.data
 }
-/**
- * Envia um arquivo (imagem, áudio ou PDF), com legenda opcional.
- * @param {number} chamadoId
- * @param {File} arquivo
- * @param {string} [legenda]
- */
+

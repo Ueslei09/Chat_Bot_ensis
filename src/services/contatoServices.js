@@ -1,4 +1,5 @@
-import api from './api'
+// Ajustado para importar a constante nomeada { api } do api.js
+import { api } from './api'
 
 export async function listarContatos(filtros = {}) {
   const resposta = await api.get('/contatos', { params: filtros })

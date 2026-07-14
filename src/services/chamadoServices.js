@@ -1,4 +1,5 @@
-import api from './api'
+// Ajustado para importar a constante nomeada { api } do api.js
+import { api } from './api'
 
 /**
  * Busca chamados filtrando por status.
@@ -51,6 +52,7 @@ export async function fecharChamado(chamadoId) {
   const resposta = await api.put(`/chamados/${chamadoId}/fechar`)
   return resposta.data
 }
+
 /**
  * Reabre um chamado fechado (volta pra fila).
  * @param {number} chamadoId
@@ -83,4 +85,3 @@ export async function marcarAguardandoCliente(chamadoId) {
   const resposta = await api.put(`/chamados/${chamadoId}/aguardar-cliente`)
   return resposta.data
 }
- 

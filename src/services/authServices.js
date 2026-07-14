@@ -1,4 +1,5 @@
-import api from './api'
+// Ajustado para importar usando Named Imports, combinando com o nosso api.js
+import { api, socket } from './api'
 
 /**
  * Faz login na API.
@@ -16,21 +17,19 @@ export async function login(email, senha) {
   return resposta.data
 }
 
-/** Remove o token e desconecta o usuário. */
+/** Remove o token, desconecta o Socket.IO e desloga o usuário. */
 export function logout() {
   localStorage.removeItem('token')
+  
+  // 🔥 SEGURANÇA NO WEBSOCKET: Encerra a conexão em tempo real imediatamente
+  if (socket && socket.connected) {
+    socket.disconnect()
+  }
 }
-
-// ============================================================
-// ADICIONE ISSO NO FINAL DO SEU authServices.js JÁ EXISTENTE
-// (não substitua o arquivo, só acrescente esta função)
-// ============================================================
 
 /**
  * Lê o token salvo e devolve o perfil do usuário ('ADM' ou 'USER'),
- * sem precisar chamar a API de novo. O token JWT tem 3 partes
- * separadas por ponto: cabeçalho.payload.assinatura — decodificamos
- * só o payload (que é Base64) pra ler o que tem dentro.
+ * sem precisar chamar a API de novo. 
  */
 export function getPerfil() {
   const token = localStorage.getItem('token')
@@ -38,8 +37,17 @@ export function getPerfil() {
 
   try {
     const payloadBase64 = token.split('.')[1]
-    const payload = JSON.parse(atob(payloadBase64))
-    return payload.perfil // 'ADM' ou 'USER'
+    
+    // Tratamento seguro para decodificar caracteres especiais/acentos no Base64
+    const payloadDecodificado = decodeURIComponent(
+      atob(payloadBase64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    
+    const payload = JSON.parse(payloadDecodificado)
+    return payload.perfil // Retornará 'ADM' ou 'USER'
   } catch {
     return null
   }
@@ -62,7 +70,16 @@ export function getNomeUsuario() {
  
   try {
     const payloadBase64 = token.split('.')[1]
-    const payload = JSON.parse(atob(payloadBase64))
+    
+    // Decodifica preservando acentos do nome (ex: João, Valéria)
+    const payloadDecodificado = decodeURIComponent(
+      atob(payloadBase64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    
+    const payload = JSON.parse(payloadDecodificado)
     return payload.nome || null
   } catch {
     return null
@@ -82,6 +99,3 @@ export function getIdUsuario() {
     return null
   }
 }
- 
-
- 

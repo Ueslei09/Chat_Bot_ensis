@@ -1,41 +1,52 @@
+import axios from 'axios';
+import { io } from 'socket.io-client';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 // ============================================================
-// api.js
-// ------------------------------------------------------------
-// Instância base do axios, compartilhada por todos os
-// serviços (auth, usuarios, chamados, mensagens).
-// Contém apenas configuração — nenhuma chamada de rota fica
-// aqui, isso vai em cada *.service.js.
+// 1. CONFIGURAÇÃO DO AXIOS (HTTP)
 // ============================================================
+export const api = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+});
 
-import axios from 'axios'
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-  headers: {
-    'Content-Type': 'application/json'
+// INTERCEPTOR: Adiciona o Token JWT automaticamente em todas as requisições
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-})
+);
 
-// Injeta o token JWT em toda requisição, se existir
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-// Se a API responder 401, o token expirou/é inválido:
-// limpa o login e manda o usuário pra tela de login
+// INTERCEPTOR DE RESPOSTA: Se o token expirar, desloga o usuário na hora
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Token inválido ou expirado -> Limpa tudo e manda pro Login
+      localStorage.removeItem('token');
+      localStorage.removeItem('usuario');
+      window.location.href = '/login';
     }
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
-export default api
+// ============================================================
+// 2. CONFIGURAÇÃO DO SOCKET.IO (Tempo Real)
+// ============================================================
+// Iniciamos com autoConnect: false para não tentar conectar sem login
+export const socket = io(API_URL, {
+  autoConnect: false,
+  auth: (cb) => {
+    // Busca o token atualizado toda vez que tentar conectar/reconectar
+    cb({ token: localStorage.getItem('token') });
+  }
+});

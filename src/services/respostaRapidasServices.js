@@ -1,4 +1,5 @@
-import api from './api'
+// Ajustado para importar a constante nomeada { api } do api.js
+import { api } from './api'
 
 /** Lista respostas rápidas, com busca opcional. */
 export async function listarRespostasRapidas(busca = '') {

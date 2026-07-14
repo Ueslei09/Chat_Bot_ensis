@@ -4,7 +4,8 @@
 // Chamadas para a rota /configuracoes da API (protegida, só ADM)
 // ============================================================
 
-import api from './api'
+// Ajustado para importar a constante nomeada { api } do api.js
+import { api } from './api'
 
 /** Busca todas as configurações salvas. */
 export async function listarConfiguracoes() {

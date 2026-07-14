@@ -10,7 +10,7 @@
 
     <!-- Cartão do formulário, flutuando centralizado por cima da imagem -->
     <div class="login-box">
-      <h3 class="mb-4 text-center">Moove Chat-Multi</h3>
+      <h3 class="mb-4 text-center text-dark">Moove Chat-Multi</h3>
 
       <form @submit.prevent="login">
         <div class="mb-3">
@@ -20,6 +20,7 @@
             type="text"
             class="form-control"
             placeholder="Digite seu usuário"
+            required
           />
         </div>
 
@@ -30,6 +31,7 @@
             type="password"
             class="form-control"
             placeholder="Digite sua senha"
+            required
           />
         </div>
 
@@ -40,19 +42,11 @@
           {{ carregando ? 'Entrando...' : 'Entrar' }}
         </button>
       </form>
-       <!-- ============================================================ -->
-<!-- ADICIONE ISSO dentro do .login-box, logo depois do </form>   -->
-<!-- no seu LoginView.vue                                         -->
-<!-- ============================================================ -->
  
-<router-link to="/admin-login" class="link-admin">
-  Usuário administrador
-</router-link>
+      <router-link to="/admin-login" class="link-admin">
+        Usuário administrador
+      </router-link>
     </div>
-   
- 
-
-
   </div>
 </template>
 
@@ -60,21 +54,21 @@
 // Estados reativos do formulário
 import { ref } from 'vue'
 
-// Roteador, pra redirecionar depois do login
-import { useRouter } from 'vue-router'
+// Importa a Store de autenticação global do Pinia
+import { useAuthStore } from '@/stores/auth'
 
-// Função de login do arquivo central de API
-// ✅ certo (é aqui que a função login realmente está)
-import { login as loginApi } from '@/services/authServices.js'
-// Imagem de fundo (mesma que você já tinha)
+// Importa o cliente Socket.IO para conectá-lo assim que o login for aprovado
+import { socket } from '@/services/api.js'
+
+// Imagem de fundo
 import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
-const usuario = ref('')
+const usuario = ref('') // Esse campo receberá o e-mail do usuário
 const senha = ref('')
 const erro = ref('')
 const carregando = ref(false)
 
-const router = useRouter()
+const authStore = useAuthStore()
 
 // Chamado ao enviar o formulário
 async function login() {
@@ -82,13 +76,15 @@ async function login() {
   carregando.value = true
 
   try {
-    // usuario.value aqui é o e-mail (ajuste se seu backend usar outro campo)
-    await loginApi(usuario.value, senha.value)
+    // 1. Dispara a ação de login na Store centralizadora do Pinia
+    await authStore.realizarLogin(usuario.value, senha.value)
 
-    // Login deu certo -> vai pra tela principal do sistema
-    router.push('/app/chamados')
+    // 2. Conectamos o Socket com segurança, já que o JWT está salvo
+    socket.connect()
+    
   } catch (err) {
-    erro.value = err.response?.data?.erro || 'Usuário ou senha inválidos'
+    // Trata e expõe o erro do backend de forma limpa na tela
+    erro.value = err.response?.data?.erro || 'E-mail ou senha inválidos'
   } finally {
     carregando.value = false
   }

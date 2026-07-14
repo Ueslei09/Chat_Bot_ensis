@@ -1,14 +1,8 @@
 <template>
   <div class="tela-chamados">
 
-    <ChatSidebar
-      :chamados="chamados"
-      :carregando="carregando"
-      :aba-atual="abaAtual"
-      :chamado-selecionado="chamadoSelecionado"
-      @trocar-aba="trocarAba"
-      @selecionar="selecionarChamado"
-    />
+    <ChatSidebar :chamados="chamados" :carregando="carregando" :aba-atual="abaAtual"
+      :chamado-selecionado="chamadoSelecionado" @trocar-aba="trocarAba" @selecionar="selecionarChamado" />
 
     <main class="area-chat">
       <div v-if="!chamadoSelecionado" class="chat-vazio">
@@ -16,51 +10,22 @@
       </div>
 
       <div v-else class="chat-corpo">
-        <ChatHeader
-           :chamado="chamadoSelecionado"
-  :aba-atual="abaAtual"
-  @assumir="assumir"
-  @abrir-transferir="abrirModalTransferir"
-  @abrir-fechar="abrirModalFechar"
-  @reabrir="reabrir"
-  @abrir-detalhes="abrirDetalhes"
-        />
+        <ChatHeader :chamado="chamadoSelecionado" :aba-atual="abaAtual" @assumir="assumir"
+          @abrir-transferir="abrirModalTransferir" @abrir-fechar="abrirModalFechar" @reabrir="reabrir"
+          @abrir-detalhes="abrirDetalhes" />
 
         <p v-if="mensagemAcao" class="mensagem-acao">{{ mensagemAcao }}</p>
 
-        <ChatMessages
-          :mensagens="mensagens"
-          :carregando="carregandoMensagens"
-          :meu-id="meuId"
-          :sou-admin="admin"
-          @responder="responder"
-          @encaminhar="abrirModalEncaminhar"
-          @editar="iniciarEdicao"
-          @apagar="apagar"
-        />
+        <ChatMessages :mensagens="mensagens" :carregando="carregandoMensagens" :meu-id="meuId" :sou-admin="admin"
+          @responder="responder" @encaminhar="abrirModalEncaminhar" @editar="iniciarEdicao" @apagar="apagar" />
 
-        <ChatFooter
-        :usuario="usuarioLogado"
-  :chamado="chamadoSelecionado"
-  :status="chamadoSelecionado?.status"
-  :pode-assumir="podeAssumirChamado"
-  :pode-reabrir="true"
-  :respondendo-a="respondendoA"
-  :editando="!!editandoId"
-  :texto-inicial="textoParaEditar"
-  @enviar-mensagem="enviar"
-  @anexar-arquivo="enviarArquivoSelecionado"
-  @gravar-audio="enviarArquivoSelecionado"
-  @confirmar-edicao="confirmarEdicao"
-  @cancelar-edicao="cancelarEdicao"
-  @cancelar-resposta="respondendoA = null"
-  @assumir-chamado="assumirForcado"
-  @solicitar-transferencia="solicitarTransferencia"
-  @retomar-chamado="retomarAtendimento"
-  @reabrir-chamado="reabrir"
-  @voltar-para-fila="voltarParaFila"
-  @visualizar-historico="abrirDetalhes"
-        />
+        <ChatFooter :usuario="usuarioLogado" :chamado="chamadoSelecionado" :status="chamadoSelecionado?.status"
+          :pode-assumir="podeAssumirChamado" :pode-reabrir="true" :respondendo-a="respondendoA" :editando="!!editandoId"
+          :texto-inicial="textoParaEditar" @enviar-mensagem="enviar" @anexar-arquivo="enviarArquivoSelecionado"
+          @gravar-audio="enviarArquivoSelecionado" @confirmar-edicao="confirmarEdicao" @cancelar-edicao="cancelarEdicao"
+          @cancelar-resposta="respondendoA = null" @assumir-chamado="assumirForcado"
+          @solicitar-transferencia="solicitarTransferencia" @retomar-chamado="retomarAtendimento"
+          @reabrir-chamado="reabrir" @voltar-para-fila="voltarParaFila" @visualizar-historico="abrirDetalhes" />
       </div>
     </main>
 
@@ -71,7 +36,8 @@
         <label>Transferir para atendente</label>
         <select v-model="atendenteEscolhido">
           <option value="" disabled>Selecione...</option>
-          <option v-for="atendente in atendentes" :key="atendente.id" :value="atendente.id">{{ atendente.nome }}</option>
+          <option v-for="atendente in atendentes" :key="atendente.id" :value="atendente.id">{{ atendente.nome }}
+          </option>
         </select>
         <label>Adicionar comentário</label>
         <textarea v-model="comentarioTransferir" rows="3" placeholder="Adicionar comentário"></textarea>
@@ -116,15 +82,10 @@
         </div>
       </div>
     </div>
-    <ChatDrawer
-  :aberto="detalhesAbertos"
-  :detalhes="detalhesChamado"
-  :carregando="carregandoDetalhes"
-  @fechar="detalhesAbertos = false"
-  @recarregar="carregarDetalhes"
-  @transferir="detalhesAbertos = false; abrirModalTransferir()"
-  @encerrar="detalhesAbertos = false; abrirModalFechar()"
-/>
+    <ChatDrawer :aberto="detalhesAbertos" :detalhes="detalhesChamado" :carregando="carregandoDetalhes"
+      @fechar="detalhesAbertos = false" @recarregar="carregarDetalhes"
+      @transferir="detalhesAbertos = false; abrirModalTransferir()"
+      @encerrar="detalhesAbertos = false; abrirModalFechar()" />
 
   </div>
 </template>
@@ -194,7 +155,7 @@ const usuarioLogado = computed(() => ({
 
 // Só ADM pode "forçar assumir" um chamado que já é de outro atendente
 const podeAssumirChamado = computed(() => admin)
- 
+
 // Verdadeiro quando o chamado está EM_ATENDIMENTO mas NÃO é do usuário logado
 const modoSomenteLeitura = computed(() => {
   if (!chamadoSelecionado.value) return false
@@ -489,7 +450,7 @@ async function carregarDetalhes() {
     carregandoDetalhes.value = false
   }
 }
- 
+
 async function abrirDetalhes() {
   detalhesAbertos.value = true
   await carregarDetalhes()
@@ -516,22 +477,26 @@ onMounted(async () => {
   height: calc(100vh - 56px);
   position: relative;
 }
+
 .area-chat {
   flex: 1;
   background: #eae6df;
   display: flex;
   flex-direction: column;
 }
+
 .chat-vazio {
   margin: auto;
   color: #888;
   font-size: 14px;
 }
+
 .chat-corpo {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
+
 .mensagem-acao {
   padding: 8px 20px;
   margin: 0;
@@ -550,6 +515,7 @@ onMounted(async () => {
   justify-content: center;
   z-index: 100;
 }
+
 .modal-box {
   background: #fff;
   border-radius: 10px;
@@ -561,10 +527,12 @@ onMounted(async () => {
   flex-direction: column;
   gap: 8px;
 }
+
 .modal-box h3 {
   margin: 0 0 4px 0;
   text-align: center;
 }
+
 .modal-icone-alerta {
   width: 44px;
   height: 44px;
@@ -578,17 +546,20 @@ onMounted(async () => {
   justify-content: center;
   margin: 0 auto 8px;
 }
+
 .modal-subtitulo {
   text-align: center;
   color: #666;
   font-size: 13px;
   margin: 0 0 8px;
 }
+
 .modal-box label {
   font-size: 13px;
   color: #444;
   margin-top: 4px;
 }
+
 .modal-box select,
 .modal-box textarea {
   padding: 8px;
@@ -596,12 +567,14 @@ onMounted(async () => {
   border-radius: 6px;
   font-family: inherit;
 }
+
 .modal-botoes {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 12px;
 }
+
 .btn-cancelar {
   background: #dbe3ee;
   color: #333;
@@ -610,6 +583,7 @@ onMounted(async () => {
   border-radius: 20px;
   cursor: pointer;
 }
+
 .btn-confirmar {
   background: #1a3c6e;
   color: #fff;
@@ -618,6 +592,7 @@ onMounted(async () => {
   border-radius: 20px;
   cursor: pointer;
 }
+
 .btn-confirmar:disabled {
   opacity: 0.5;
   cursor: not-allowed;
