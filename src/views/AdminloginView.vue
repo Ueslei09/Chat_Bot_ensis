@@ -1,8 +1,7 @@
 <template>
-    <div class="login-page1" :style="{ backgroundImage: `url(${bgImage})` }">
- 
+  <div class="login-page1" :style="{ backgroundImage: `url(${bgImage})` }">
     <div class="login-box">
-      <h3 class="mb-4 text-center">Acesso Administrativo</h3>
+      <h3 class="mb-4 text-center text-dark">Acesso Administrativo</h3>
 
       <form @submit.prevent="entrar">
         <div class="mb-3">
@@ -12,6 +11,7 @@
             type="email"
             class="form-control"
             placeholder="admin@ensis.com"
+            required
           />
         </div>
 
@@ -22,6 +22,7 @@
             type="password"
             class="form-control"
             placeholder="Digite sua senha"
+            required
           />
         </div>
 
@@ -36,44 +37,47 @@
         Não sou administrador, voltar
       </router-link>
     </div>
- 
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { login, logout, isAdmin } from '@/services/authServices.js'
-// Imagem de fundo (mesma que você já tinha)
+import { useAuthStore } from '@/stores/auth'
+import { socket } from '@/services/api.js'
+
+// Imagem de fundo
 import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
 const email = ref('')
 const senha = ref('')
 const erro = ref('')
 const carregando = ref(false)
+
 const router = useRouter()
+const authStore = useAuthStore()
 
 async function entrar() {
   erro.value = ''
   carregando.value = true
 
   try {
-    // Faz o login normal (mesma rota /auth/login usada por todo mundo)
-    await login(email.value, senha.value)
+    // 1. Faz o login centralizado pela authStore
+    await authStore.realizarLogin(email.value, senha.value)
 
-    // ------------------------------------------------------
-    // TRAVA DE SEGURANÇA: só deixa passar se o perfil
-    // dentro do token for realmente 'ADM'
-    // ------------------------------------------------------
-    if (!isAdmin()) {
-      // Login funcionou, mas a conta não é de admin.
-      // Desfaz o login (remove o token) e avisa o usuário.
-      logout()
+    // 2. TRAVA DE SEGURANÇA: Só deixa passar se o usuário logado for de fato Administrador
+    if (!authStore.eAdministrador) {
+      // Login funcionou, mas a conta não é administrativa.
+      // Desfazemos a sessão local e barramos a entrada.
+      authStore.limparSessao()
       erro.value = 'Esta conta não tem permissão de administrador.'
       return
     }
 
-    // É ADM de verdade -> vai direto pra tela de configurações
+    // 3. Conectamos o Socket.IO agora que o token administrativo está seguro
+    socket.connect()
+
+    // 4. Se é ADM, redireciona direto para a área de configurações
     router.push('/app/configuracoes')
 
   } catch (err) {

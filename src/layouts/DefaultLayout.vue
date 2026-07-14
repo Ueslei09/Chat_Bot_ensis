@@ -8,7 +8,8 @@
         <router-link to="/app/contatos">Contatos</router-link>
         <router-link to="/app/conexoes">Conexões</router-link>
         <router-link to="/app/respostas-rapidas">Respostas rápidas</router-link>
-        <router-link v-if="admin" to="/app/configuracoes">Configurações</router-link>
+        <!-- Usa o Getter reativo do Pinia para exibir Configurações apenas se for ADM -->
+        <router-link v-if="authStore.eAdministrador" to="/app/configuracoes">Configurações</router-link>
 
         <!-- ==================== AVATAR + STATUS ==================== -->
         <div class="avatar-wrapper">
@@ -19,12 +20,13 @@
           </button>
 
           <div v-if="menuAberto" class="dropdown-menu-custom">
-            <div class="nome-usuario">{{ nomeUsuario }}</div>
+            <!-- Pega o nome do usuário reativamente do Pinia -->
+            <div class="nome-usuario">{{ authStore.usuario?.nome || 'Usuário' }}</div>
             <div class="status-linha">
-            <span class="dot" :class="statusWhatsapp"></span>
-  <template v-if="statusWhatsapp === 'online'">WhatsApp conectado</template>
-  <template v-else-if="statusWhatsapp === 'offline'">Instabilidade no WhatsApp</template>
-  <template v-else>WhatsApp ainda não configurado</template>
+              <span class="dot" :class="statusWhatsapp"></span>
+              <template v-if="statusWhatsapp === 'online'">WhatsApp conectado</template>
+              <template v-else-if="statusWhatsapp === 'offline'">Instabilidade no WhatsApp</template>
+              <template v-else>WhatsApp ainda não configurado</template>
             </div>
 
             <hr />
@@ -33,10 +35,11 @@
               Trocar nome de usuário
             </div>
             <div v-else class="item-editar">
-              <input v-model="novoNome" placeholder="Novo nome" />
+              <input v-model="novoNome" placeholder="Novo nome" @keyup.enter="salvarNome" />
               <button @click="salvarNome">Salvar</button>
             </div>
 
+            <!-- Desloga usando o fluxo padrão do Pinia -->
             <div class="item sair" @click="sair">Sair</div>
           </div>
         </div>
@@ -45,25 +48,26 @@
   </nav>
 
   <!-- ==================== FAIXA DE AVISO: INSTABILIDADE ==================== -->
- <div v-if="statusWhatsapp === 'offline'" class="aviso-instabilidade">
-  ⚠️ Instabilidade detectada na conexão com o WhatsApp. Algumas mensagens podem não ser entregues.
-</div>
+  <div v-if="statusWhatsapp === 'offline'" class="aviso-instabilidade">
+    ⚠️ Instabilidade detectada na conexão com o WhatsApp. Algumas mensagens podem não ser entregues.
+  </div>
 
   <router-view />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { isAdmin, logout, getNomeUsuario } from '@/services/authServices.js'
+import { useAuthStore } from '@/stores/auth'
 import { atualizarMeuNome } from '@/services/usuariosServices.js'
 import { listarConexoes } from '@/services/conexoesServices.js'
 
-const admin = isAdmin()
-const router = useRouter()
+const authStore = useAuthStore()
 
-const nomeUsuario = ref(getNomeUsuario() || 'Usuário')
-const inicialNome = computed(() => nomeUsuario.value.charAt(0).toUpperCase())
+// Computa a inicial a partir do estado reativo do Pinia
+const inicialNome = computed(() => {
+  const nome = authStore.usuario?.nome || 'U'
+  return nome.charAt(0).toUpperCase()
+})
 
 const menuAberto = ref(false)
 const editando = ref(false)
@@ -79,7 +83,6 @@ async function verificarStatusWhatsapp() {
     const conexoesWhatsapp = conexoes.filter(c => c.tipo === 'whatsapp')
  
     if (conexoesWhatsapp.length === 0) {
-      // Nenhuma conexão cadastrada ainda -> não dá pra dizer que está "conectado"
       statusWhatsapp.value = 'nao-configurado'
       return
     }
@@ -95,18 +98,27 @@ let intervaloStatus = null
 
 async function salvarNome() {
   if (!novoNome.value.trim()) return
-  await atualizarMeuNome(novoNome.value)
-  nomeUsuario.value = novoNome.value
-  editando.value = false
-  menuAberto.value = false
-  novoNome.value = ''
-  // Nota: o nome no token só atualiza no próximo login;
-  // aqui já refletimos visualmente na hora.
+  try {
+    // Atualiza no backend
+    await atualizarMeuNome(novoNome.value)
+    
+    // Sincroniza a atualização reativa no estado global do Pinia
+    if (authStore.usuario) {
+      authStore.usuario.nome = novoNome.value
+      // Atualiza também no localStorage para persistência de F5
+      localStorage.setItem('usuario', JSON.stringify(authStore.usuario))
+    }
+    
+    editando.value = false
+    menuAberto.value = false
+    novoNome.value = ''
+  } catch (err) {
+    console.error('Erro ao salvar novo nome:', err)
+  }
 }
 
 function sair() {
-  logout()
-  router.push('/')
+  authStore.logout()
 }
 
 onMounted(() => {
@@ -177,6 +189,7 @@ onUnmounted(() => {
   padding: 4px 14px 8px;
   font-weight: bold;
   font-size: 13px;
+  color: #333;
 }
 .status-linha {
   padding: 0 14px 8px;
@@ -207,6 +220,7 @@ onUnmounted(() => {
   padding: 10px 14px;
   font-size: 13px;
   cursor: pointer;
+  color: #333;
 }
 .item:hover {
   background: #f5f5f5;

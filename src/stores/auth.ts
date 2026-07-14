@@ -1,7 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 // @ts-ignore (evita que o TS reclame de importar arquivos .js sem tipagem declarada)
-import { login as apiLogin, estaAutenticado, obterUsuarioLogado, isAdmin } from '@/services/authServices'
+// @ts-ignore
+// @ts-ignore
+import { login as apiLogin, estaAutenticado, obterUsuarioLogado, isAdmin } from '@/services/authServices.js'
 import router from '../router'
 
 export const useAuthStore = defineStore('auth', () => {

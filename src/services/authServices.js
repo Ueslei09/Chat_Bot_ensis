@@ -13,6 +13,11 @@ export async function login(email, senha) {
   if (resposta.data.token) {
     localStorage.setItem('token', resposta.data.token)
   }
+  
+  // Se a API retornar os dados do usuário, salva também para uso rápido
+  if (resposta.data.usuario) {
+    localStorage.setItem('usuario', JSON.stringify(resposta.data.usuario))
+  }
 
   return resposta.data
 }
@@ -20,6 +25,7 @@ export async function login(email, senha) {
 /** Remove o token, desconecta o Socket.IO e desloga o usuário. */
 export function logout() {
   localStorage.removeItem('token')
+  localStorage.removeItem('usuario')
   
   // 🔥 SEGURANÇA NO WEBSOCKET: Encerra a conexão em tempo real imediatamente
   if (socket && socket.connected) {
@@ -53,7 +59,7 @@ export function getPerfil() {
   }
 }
 
-/** Atalho: true se o usuário logado for ADM. */
+/** Retorna true se o usuário logado for ADM. */
 export function isAdmin() {
   return getPerfil() === 'ADM'
 }
@@ -96,6 +102,24 @@ export function getIdUsuario() {
     const payload = JSON.parse(atob(payloadBase64))
     return payload.id || null
   } catch {
+    return null
+  }
+}
+
+/** Lê o objeto completo do usuário salvo localmente. */
+export function obterUsuarioLogado() {
+  const usuario = localStorage.getItem('usuario')
+  if (!usuario) {
+    // Se não tiver no localStorage, tenta montar um objeto básico a partir do Token
+    const nome = getNomeUsuario()
+    const id = getIdUsuario()
+    const perfil = getPerfil()
+    if (nome || id) return { id, nome, perfil }
+    return null
+  }
+  try {
+    return JSON.parse(usuario)
+  } catch (e) {
     return null
   }
 }
