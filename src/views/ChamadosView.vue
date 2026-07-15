@@ -89,9 +89,9 @@
 
   </div>
 </template>
-
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ChatSidebar from '../../components/chat/ChatSidebar.vue'
@@ -101,7 +101,8 @@ import ChatFooter from '../../components/chat/ChatFooter.vue'
 import ChatDrawer from '../../components/chat/ChatDrawer.vue'
 import { listarAtendentes } from '@/services/usuariosServices.js'
 
-
+// Importamos a conexão global do socket criada em api.js
+import { socket } from '@/services/api.js'
 
 import {
   listarMensagens,
@@ -111,10 +112,6 @@ import {
   editarMensagem,
   encaminharMensagem
 } from '@/services/mensagensServices.js'
-
-
-
-
 
 import {
   listarChamadosPorStatus,
@@ -126,61 +123,117 @@ import {
   retomarChamado,
 } from '@/services/chamadoServices.js'
 
-
 import { isAdmin, getIdUsuario, getNomeUsuario } from '@/services/authServices.js'
-
 
 const route = useRoute()
 
 // ------------------------------------------------------------
-// CHAMADOS (sidebar)
+// ESTADOS GLOBAIS / REFS
 // ------------------------------------------------------------
 const abaAtual = ref('EM_ATENDIMENTO')
 const chamados = ref([])
 const carregando = ref(false)
 const chamadoSelecionado = ref(null)
 const mensagemAcao = ref('')
-// Estado do painel lateral
+
 const detalhesAbertos = ref(false)
 const detalhesChamado = ref(null)
 const carregandoDetalhes = ref(false)
 
+const admin = isAdmin()
+const meuId = getIdUsuario()
 
-// Objeto simples com os dados do usuário logado, pro ChatFooter usar
 const usuarioLogado = computed(() => ({
   id: meuId,
   nome: getNomeUsuario(),
   perfil: admin ? 'ADM' : 'USER'
 }))
 
-// Só ADM pode "forçar assumir" um chamado que já é de outro atendente
 const podeAssumirChamado = computed(() => admin)
 
-// Verdadeiro quando o chamado está EM_ATENDIMENTO mas NÃO é do usuário logado
-const modoSomenteLeitura = computed(() => {
-  if (!chamadoSelecionado.value) return false
-  return (
-    chamadoSelecionado.value.status === 'EM_ATENDIMENTO' &&
-    chamadoSelecionado.value.atendente_id !== meuId
-  )
-})
+// ------------------------------------------------------------
+// ⚡ MOTOR EM TEMPO REAL: SOCKET.IO (Segurança & Performance)
+// ------------------------------------------------------------
+function configurarEventosSocket() {
+  if (!socket.connected) {
+    socket.connect()
+  }
 
-// Chamado pelo botão "Assumir Atendimento" no estado bloqueado (só ADM vê esse botão)
-// Reaproveita a rota de TRANSFERIR, passando o próprio usuário como novo atendente
+  // Escuta novas mensagens recebidas no sistema (via WhatsApp ou outro atendente)
+  socket.on('novaMensagem', (mensagem) => {
+    // Se a mensagem pertence ao chamado que estou visualizando na tela, adiciona na lista
+    if (chamadoSelecionado.value && mensagem.chamado_id === chamadoSelecionado.value.id) {
+      // Evita duplicados comparando IDs
+      const jaExiste = mensagens.value.some(m => m.id === mensagem.id)
+      if (!jaExiste) {
+        mensagens.value.push(mensagem)
+      }
+    }
+  })
+
+  // Escuta atualizações físicas nas mensagens (Edições)
+  socket.on('mensagemEditada', (mensagemAtualizada) => {
+    if (chamadoSelecionado.value && mensagemAtualizada.chamado_id === chamadoSelecionado.value.id) {
+      const index = mensagens.value.findIndex(m => m.id === mensagemAtualizada.id)
+      if (index !== -1) {
+        mensagens.value[index] = mensagemAtualizada
+      }
+    }
+  })
+
+  // Escuta exclusões de mensagens (Apagadas)
+  socket.on('mensagemApagada', ({ id, chamado_id }) => {
+    if (chamadoSelecionado.value && chamado_id === chamadoSelecionado.value.id) {
+      mensagens.value = mensagens.value.filter(m => m.id !== id)
+    }
+  })
+
+  // Escuta atualizações nos chamados (status, transferências, etc.)
+  socket.on('chamadoAtualizado', (chamadoModificado) => {
+    // Atualiza a lista lateral de chamados em tempo real
+    const index = chamados.value.findIndex(c => c.id === chamadoModificado.id)
+    
+    if (index !== -1) {
+      // Se o chamado mudou de status e não pertence mais à aba ativa, remove da tela
+      if (chamadoModificado.status !== abaAtual.value) {
+        chamados.value.splice(index, 1)
+        if (chamadoSelecionado.value?.id === chamadoModificado.id) {
+          chamadoSelecionado.value = null
+        }
+      } else {
+        // Apenas atualiza as informações do chamado
+        chamados.value[index] = chamadoModificado
+        if (chamadoSelecionado.value?.id === chamadoModificado.id) {
+          chamadoSelecionado.value = chamadoModificado
+        }
+      }
+    } else if (chamadoModificado.status === abaAtual.value) {
+      // Se o chamado foi para a aba atual, adiciona na lista lateral
+      chamados.value.unshift(chamadoModificado)
+    }
+  })
+}
+
+function removerEventosSocket() {
+  socket.off('novaMensagem')
+  socket.off('mensagemEditada')
+  socket.off('mensagemApagada')
+  socket.off('chamadoAtualizado')
+}
+
+// ------------------------------------------------------------
+// CHAMADOS (Ações)
+// ------------------------------------------------------------
 async function assumirForcado() {
   try {
     await transferirChamado(chamadoSelecionado.value.id, meuId)
     mensagemAcao.value = 'Você assumiu o chamado.'
-    await carregarChamados()
-    await carregarMensagens()
+    // A atualização lateral ocorrerá via Socket ('chamadoAtualizado')
   } catch (err) {
     mensagemAcao.value = err.response?.data?.erro || 'Erro ao assumir chamado'
   }
 }
 
-// Chamado pelo botão "Solicitar Transferência" (usuário comum, sem permissão de forçar)
-// Por enquanto só avisa na tela — no futuro pode virar uma notificação de verdade
-// pro atendente atual ou pro ADM
 function solicitarTransferencia() {
   mensagemAcao.value = 'Solicitação de transferência enviada ao atendente responsável.'
 }
@@ -189,15 +242,11 @@ async function retomarAtendimento() {
   try {
     await retomarChamado(chamadoSelecionado.value.id)
     mensagemAcao.value = 'Atendimento retomado!'
-    await carregarChamados()
-    // Atualiza o status do chamado selecionado localmente, sem precisar re-selecionar
-    chamadoSelecionado.value = { ...chamadoSelecionado.value, status: 'EM_ATENDIMENTO' }
   } catch (err) {
     mensagemAcao.value = err.response?.data?.erro || 'Erro ao retomar atendimento'
   }
 }
 
-// Chamado pelo evento @voltar-para-fila (Estado 2 do ChatFooter, botão secundário)
 function voltarParaFila() {
   chamadoSelecionado.value = null
 }
@@ -231,16 +280,18 @@ async function selecionarChamado(chamado) {
 }
 
 async function assumir() {
-  await assumirChamado(chamadoSelecionado.value.id)
-  await carregarChamados()
-  chamadoSelecionado.value = null
+  try {
+    await assumirChamado(chamadoSelecionado.value.id)
+    chamadoSelecionado.value = null
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 async function reabrir() {
   try {
     await reabrirChamado(chamadoSelecionado.value.id)
     mensagemAcao.value = 'Chamado reaberto! Ele voltou pra fila.'
-    await carregarChamados()
     chamadoSelecionado.value = null
   } catch (err) {
     mensagemAcao.value = err.response?.data?.erro || 'Erro ao reabrir chamado'
@@ -248,7 +299,7 @@ async function reabrir() {
 }
 
 // ------------------------------------------------------------
-// TRANSFERIR / FECHAR (modais)
+// TRANSFERIR / FECHAR (Modais)
 // ------------------------------------------------------------
 const atendentes = ref([])
 const atendenteEscolhido = ref('')
@@ -291,7 +342,6 @@ async function transferir() {
     }
     mensagemAcao.value = 'Chamado transferido com sucesso!'
     fecharModais()
-    await carregarChamados()
     chamadoSelecionado.value = null
   } catch (err) {
     mensagemAcao.value = err.response?.data?.erro || 'Erro ao transferir chamado'
@@ -310,7 +360,6 @@ async function fechar() {
     await fecharChamado(chamadoSelecionado.value.id)
     mensagemAcao.value = 'Chamado fechado com sucesso!'
     fecharModais()
-    await carregarChamados()
     chamadoSelecionado.value = null
   } catch (err) {
     mensagemAcao.value = err.response?.data?.erro || 'Erro ao fechar chamado'
@@ -318,12 +367,10 @@ async function fechar() {
 }
 
 // ------------------------------------------------------------
-// MENSAGENS
+// MENSAGENS (Requisições seguras)
 // ------------------------------------------------------------
 const mensagens = ref([])
 const carregandoMensagens = ref(false)
-const admin = isAdmin()
-const meuId = getIdUsuario()
 
 async function carregarMensagens() {
   if (!chamadoSelecionado.value) return
@@ -346,19 +393,33 @@ async function enviar(texto) {
       resposta_a: respondendoA.value?.id || null
     })
     respondendoA.value = null
-    await carregarMensagens()
+    // Nota: NÃO chamamos carregarMensagens() aqui. O próprio backend emite o evento "novaMensagem" via Socket e atualiza a tela na hora!
   } catch (err) {
     console.error('Erro ao enviar mensagem:', err)
   }
 }
 
-async function enviarArquivoSelecionado(arquivo) {
-  if (!arquivo || !chamadoSelecionado.value) return
+// NO SEU CHAMADOSVIEW.VUE:
+async function enviarArquivoSelecionado(payload) {
   try {
-    await enviarArquivo(chamadoSelecionado.value.id, arquivo)
+    const formData = new FormData()
+    
+    // ⚡ SINCRONIA TOTAL: O primeiro parâmetro DEVE ser 'arquivo'
+    formData.append('arquivo', payload.arquivo) 
+    
+    // Envia a legenda se houver (o seu controller.upload deve capturar req.body.legenda)
+    formData.append('legenda', payload.legenda || '')
+    
+    // Envia o ID do chamado associado (req.body.chamado_id ou chamadoId dependendo do seu controller)
+    formData.append('chamado_id', chamadoSelecionado.value.id)
+
+    // Dispara o serviço do Axios
+    await enviarArquivo(formData) 
+    
+    // Recarrega as mensagens na tela para exibir o PDF enviado
     await carregarMensagens()
-  } catch (err) {
-    console.error('Erro ao enviar arquivo:', err)
+  } catch (error) {
+    console.error("Erro ao enviar arquivo:", error)
   }
 }
 
@@ -366,42 +427,40 @@ async function apagar(mensagemId) {
   if (!confirm('Apagar esta mensagem?')) return
   try {
     await apagarMensagem(mensagemId)
-    await carregarMensagens()
+    // Atualizado em tempo real pelo Socket
   } catch (err) {
     console.error('Erro ao apagar mensagem:', err)
   }
 }
 
 // ------------------------------------------------------------
-// RESPONDER
+// RESPONDER & EDITAR
 // ------------------------------------------------------------
 const respondendoA = ref(null)
+const editandoId = ref(null)
+const textoParaEditar = ref('')
+
 function responder(msg) {
   editandoId.value = null
   respondendoA.value = msg
 }
-
-// ------------------------------------------------------------
-// EDITAR (o texto fica no ChatFooter, igual WhatsApp)
-// ------------------------------------------------------------
-const editandoId = ref(null)
-const textoParaEditar = ref('')
 
 function iniciarEdicao(msg) {
   respondendoA.value = null
   editandoId.value = msg.id
   textoParaEditar.value = msg.conteudo
 }
+
 function cancelarEdicao() {
   editandoId.value = null
   textoParaEditar.value = ''
 }
+
 async function confirmarEdicao(texto) {
   try {
     await editarMensagem(editandoId.value, texto)
     editandoId.value = null
     textoParaEditar.value = ''
-    await carregarMensagens()
   } catch (err) {
     console.error('Erro ao editar mensagem:', err)
   }
@@ -425,10 +484,12 @@ async function abrirModalEncaminhar(msg) {
   }
   modalEncaminharAberto.value = true
 }
+
 function fecharModalEncaminhar() {
   modalEncaminharAberto.value = false
   mensagemParaEncaminhar.value = null
 }
+
 async function confirmarEncaminhar() {
   try {
     await encaminharMensagem(mensagemParaEncaminhar.value.id, chamadoDestinoEncaminhar.value)
@@ -457,17 +518,26 @@ async function abrirDetalhes() {
 }
 
 // ------------------------------------------------------------
-// INICIALIZAÇÃO
+// LIFECYCLE (Montagem e Desmontagem Segura)
 // ------------------------------------------------------------
 onMounted(async () => {
   await carregarChamados()
   carregarAtendentes()
+  
+  // Ativa os listeners em tempo real
+  configurarEventosSocket()
 
   const idParaAbrir = route.query.abrir
   if (idParaAbrir) {
     const chamado = chamados.value.find(c => c.id === Number(idParaAbrir))
     if (chamado) selecionarChamado(chamado)
   }
+})
+
+// 🔥 EXTRAMAMENTE IMPORTANTE PARA ESCALABILIDADE:
+// Destrói os ouvintes ao sair da tela para evitar vazamento de memória!
+onUnmounted(() => {
+  removerEventosSocket()
 })
 </script>
 

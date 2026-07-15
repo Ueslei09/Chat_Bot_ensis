@@ -1,27 +1,21 @@
-// Importa as funções do Vue Router
 import { createRouter, createWebHistory } from 'vue-router'
-import { isAdmin, estaAutenticado } from '@/services/authServices.js'
+import { useAuthStore } from '@/stores/auth' // Integrado com a nossa nova Store!
 
-// =========================
-// IMPORTAÇÃO DOS LAYOUTS
-// =========================
+// Layouts continuam com importação estática (pois envelopam as rotas principais)
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 
-// =========================
-// IMPORTAÇÃO DAS TELAS (VIEWS)
-// =========================
-import LoginView from '@/views/LoginView.vue'
-import AdminLoginView from '@/views/AdminloginView.vue'
-import ChamadosView from '@/views/ChamadosView.vue'
-import ConfiguracoesView from '@/views/ConfiguracaoView.vue'
-import ContatosView from '@/views/ContatosView.vue'
-import ConexoesView from '@/views/ConexoesView.vue'
-import RespostasRapidasView from '@/views/respostaRapidaView.vue'
+// ==========================================
+// 🚀 LAZY LOADING (Otimização de Performance)
+// ==========================================
+const LoginView = () => import('@/views/LoginView.vue')
+const AdminLoginView = () => import('@/views/AdminloginView.vue')
+const ChamadosView = () => import('@/views/ChamadosView.vue')
+const ConfiguracoesView = () => import('@/views/ConfiguracaoView.vue')
+const ContatosView = () => import('@/views/ContatosView.vue')
+const ConexoesView = () => import('@/views/ConexoesView.vue')
+const RespostasRapidasView = () => import('@/views/respostaRapidaView.vue')
 
-// =========================
-// CRIAÇÃO DO ROUTER
-// =========================
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -47,8 +41,7 @@ const router = createRouter({
     {
       path: '/app',
       component: DefaultLayout,
-      // Aplicamos o requerLogin na rota pai para blindar todos os filhos de uma vez só!
-      meta: { requerLogin: true }, 
+      meta: { requerLogin: true }, // Blindagem global dos filhos
       children: [
         {
           path: 'chamados',
@@ -59,7 +52,7 @@ const router = createRouter({
           path: 'configuracoes',
           name: 'configuracoes',
           component: ConfiguracoesView,
-          meta: { requerAdmin: true } // Além de login, exige ser administrador
+          meta: { requerAdmin: true } // Exclusivo ADM
         },
         {
           path: 'contatos',
@@ -87,29 +80,29 @@ const router = createRouter({
   ]
 })
 
-// =========================
-// GUARD DE NAVEGAÇÃO (O PEDÁGIO)
-// =========================
+// ==========================================
+// 🛡️ GUARD DE NAVEGAÇÃO INTEGRADO AO PINIA
+// ==========================================
 router.beforeEach((to) => {
-  const logado = estaAutenticado()
+  // Acessamos a Store de autenticação de forma segura dentro do Guard
+  const authStore = useAuthStore()
+  const logado = authStore.autenticado
+  const isAdmin = authStore.eAdministrador
 
-  // 1. Se a rota exige login e o usuário não está autenticado -> joga pro login
-  // O "to.matched.some" verifica tanto na rota pai (/app) quanto nos filhos
+  // 1. Se exige login e não está autenticado -> joga pro login
   if (to.matched.some(record => record.meta.requerLogin) && !logado) {
     return '/'
   }
 
-  // 2. Se a rota exige privilégio administrativo e o usuário não é ADM -> joga pros chamados
-  if (to.matched.some(record => record.meta.requerAdmin) && !isAdmin()) {
+  // 2. Se exige privilégio de ADM e não é ADM -> joga para os chamados
+  if (to.matched.some(record => record.meta.requerAdmin) && !isAdmin) {
     return '/app/chamados'
   }
 
-  // 3. Se o usuário já está logado e tenta ir para a tela de login -> manda direto pro painel
+  // 3. Se já está logado e tenta ir para telas de login -> manda direto pro painel
   if ((to.name === 'login' || to.name === 'admin-login') && logado) {
     return '/app/chamados'
   }
-
-  // Sem retorno = deixa navegar normalmente
 })
 
 export default router

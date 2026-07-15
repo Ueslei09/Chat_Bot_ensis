@@ -22,121 +22,112 @@
         {{ salvando ? 'Salvando...' : 'Salvar alterações' }}
       </button>
     </form>
-    <!-- ============================================================ -->
-<!-- 1) ADICIONE ISSO no <template>, DEPOIS do </form> que já existe -->
-<!-- (o form das mensagens de saudação continua intacto acima)      -->
-<!-- ============================================================ -->
  
-<hr class="separador" />
+    <hr class="separador" />
  
-<h2>Cadastrar Novo Usuário</h2>
+    <h2>Cadastrar Novo Usuário</h2>
  
-<form @submit.prevent="cadastrarUsuario">
-  <div class="campo">
-    <label>Nome</label>
-    <input v-model="novoUsuario.nome" type="text" required />
-  </div>
- 
-  <div class="campo">
-    <label>E-mail</label>
-    <input v-model="novoUsuario.email" type="email" required />
-  </div>
- 
-  <div class="campo">
-    <label>Senha</label>
-    <input v-model="novoUsuario.senha" type="password" minlength="6" required />
-  </div>
- 
-  <div class="campo">
-    <label>Perfil</label>
-    <select v-model="novoUsuario.perfil_id" required>
-      <option value="" disabled>Selecione...</option>
-      <option v-for="perfil in perfis" :key="perfil.id" :value="perfil.id">
-        {{ perfil.nome }}
-      </option>
-    </select>
-  </div>
- 
-  <p v-if="mensagemUsuario" class="sucesso">{{ mensagemUsuario }}</p>
-  <p v-if="erroUsuario" class="erro">{{ erroUsuario }}</p>
- 
-  <button type="submit" :disabled="cadastrando">
-    {{ cadastrando ? 'Cadastrando...' : 'Cadastrar usuário' }}
-  </button>
-</form>
-<!-- ============================================================ -->
-<!-- ADICIONE ISSO no <template>, DEPOIS do form de cadastro     -->
-<!-- de usuário que você já colou antes                          -->
-<!-- ============================================================ -->
- 
-<hr class="separador" />
- 
-<h2>Usuários Cadastrados</h2>
- 
-<table class="tabela-usuarios">
-  <thead>
-    <tr>
-      <th>Nome</th>
-    <th>E-mail</th>
-    <th>Perfil</th>
-    <th>Status</th>
-    <th>Apagar mensagens</th>
-    
-    </tr>
-  </thead>
-  <tbody>
-     <tr v-for="usuario in usuarios" :key="usuario.id">
-    <td>{{ usuario.nome }}</td>
-    <td>{{ usuario.email }}</td>
-    <td>{{ usuario.perfil }}</td>
-    <td>{{ usuario.ativo ? 'Ativo' : 'Bloqueado' }}</td>
- 
-    <!-- Nova coluna: permissão de apagar mensagens -->
-    <td>
-      <!-- ADM sempre pode apagar, não faz sentido mostrar botão pra ele -->
-      <span v-if="usuario.perfil === 'ADM'">Sempre permitido</span>
- 
-      <button
-        v-else-if="usuario.podeapagarmensagens"
-        class="btn-bloquear"
-        @click="bloquearApagarMensagens(usuario)"
-      >
-        Bloquear apagar
+    <form @submit.prevent="cadastrarUsuario">
+      <div class="campo">
+        <label>Nome</label>
+        <input v-model="novoUsuario.nome" type="text" required />
+      </div>
+     
+      <div class="campo">
+        <label>E-mail</label>
+        <input v-model="novoUsuario.email" type="email" required />
+      </div>
+     
+      <div class="campo">
+        <label>Senha</label>
+        <input v-model="novoUsuario.senha" type="password" minlength="6" required />
+      </div>
+     
+      <div class="campo">
+        <label>Perfil</label>
+        <select v-model="novoUsuario.perfil_id" required>
+          <option value="" disabled>Selecione...</option>
+          <option v-for="perfil in perfis" :key="perfil.id" :value="perfil.id">
+            {{ perfil.nome }}
+          </option>
+        </select>
+      </div>
+     
+      <p v-if="mensagemUsuario" class="sucesso">{{ mensagemUsuario }}</p>
+      <p v-if="erroUsuario" class="erro">{{ erroUsuario }}</p>
+     
+      <button type="submit" :disabled="cadastrando">
+        {{ cadastrando ? 'Cadastrando...' : 'Cadastrar usuário' }}
       </button>
-      <button
-        v-else
-        class="btn-desbloquear"
-        @click="permitirApagarMensagens(usuario)"
-      >
-        Permitir apagar
-      </button>
-    </td>
+    </form>
  
-    <td>
-      <button
-        v-if="usuario.ativo"
-        class="btn-bloquear"
-        @click="bloquear(usuario.id)"
-      >
-        Bloquear
-      </button>
-      <button
-        v-else
-        class="btn-desbloquear"
-        @click="desbloquear(usuario.id)"
-      >
-        Desbloquear
-      </button>
-    </td>
-  </tr>
-  </tbody>
-</table>
-     <button class="btn-voltar" @click="voltarParaLogin">
-  ← Voltar para o login
-</button>
-    
-  </div>
+    <hr class="separador" />
+ 
+    <h2>Usuários Cadastrados</h2>
+ 
+    <table class="tabela-usuarios">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>E-mail</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th>Apagar mensagens</th>
+          <th>Ações</th> <!-- Adicionado o cabeçalho faltante para alinhar a tabela -->
+        </tr>
+      </thead>
+      <tbody>
+         <tr v-for="usuario in usuarios" :key="usuario.id">
+          <td>{{ usuario.nome }}</td>
+          <td>{{ usuario.email }}</td>
+          <td>{{ usuario.perfil }}</td>
+          <td>{{ usuario.ativo ? 'Ativo' : 'Bloqueado' }}</td>
+     
+          <!-- Permissão de apagar mensagens -->
+          <td>
+            <span v-if="usuario.perfil === 'ADM'">Sempre permitido</span>
+     
+            <button
+              v-else-if="usuario.podeapagarmensagens"
+              class="btn-bloquear"
+              @click="bloquearApagarMensagens(usuario)"
+            >
+              Bloquear apagar
+            </button>
+            <button
+              v-else
+              class="btn-desbloquear"
+              @click="permitirApagarMensagens(usuario)"
+            >
+              Permitir apagar
+            </button>
+          </td>
+     
+          <!-- Status / Bloqueio geral de conta -->
+          <td>
+            <button
+              v-if="usuario.ativo"
+              class="btn-bloquear"
+              @click="bloquear(usuario.id)"
+            >
+              Bloquear conta
+            </button>
+            <button
+              v-else
+              class="btn-desbloquear"
+              @click="desbloquear(usuario.id)"
+            >
+              Desbloquear conta
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
+    <button class="btn-voltar mt-4" @click="voltarParaLogin">
+      ← Voltar para o login
+    </button>
+  </div>
 </template>
 
 <script setup>
@@ -163,26 +154,10 @@ const carregando = ref(true)
 const salvando = ref(false)
 const mensagem = ref('')
 const erro = ref('')
-// Lista de perfis (ADM/USER) pra popular o <select>
-const perfis = ref([])
- 
-// Desloga o ADM e manda de volta pra tela de login normal (não a de admin)
-function voltarParaLogin() {
-  logout()
-  router.push('/')
-}
-// Libera o usuário pra apagar mensagens
-async function permitirApagarMensagens(usuario) {
-  await alternarPermissaoApagar(usuario.id, true)
-  await carregarUsuarios()
-}
 
-// Bloqueia o usuário de apagar mensagens
-async function bloquearApagarMensagens(usuario) {
-  await alternarPermissaoApagar(usuario.id, false)
-  await carregarUsuarios()
-}
-// Dados do formulário de novo usuário
+const perfis = ref([])
+const usuarios = ref([])
+
 const novoUsuario = ref({
   nome: '',
   email: '',
@@ -193,9 +168,34 @@ const novoUsuario = ref({
 const cadastrando = ref(false)
 const mensagemUsuario = ref('')
 const erroUsuario = ref('')
-const usuarios = ref([])
 
-// Busca a lista de usuários
+// Desloga o ADM e manda de volta pra tela de login
+function voltarParaLogin() {
+  logout()
+  router.push('/')
+}
+
+// Libera o usuário pra apagar mensagens
+async function permitirApagarMensagens(usuario) {
+  try {
+    await alternarPermissaoApagar(usuario.id, true)
+    await carregarUsuarios()
+  } catch (err) {
+    console.error('Erro ao permitir remoção de mensagens:', err)
+  }
+}
+
+// Bloqueia o usuário de apagar mensagens
+async function bloquearApagarMensagens(usuario) {
+  try {
+    await alternarPermissaoApagar(usuario.id, false)
+    await carregarUsuarios()
+  } catch (err) {
+    console.error('Erro ao bloquear remoção de mensagens:', err)
+  }
+}
+
+// Busca a lista de usuários cadastrados
 async function carregarUsuarios() {
   try {
     usuarios.value = await listarUsuarios()
@@ -204,19 +204,27 @@ async function carregarUsuarios() {
   }
 }
 
-// Bloqueia um usuário e atualiza a listinha na tela
+// Bloqueia um usuário e atualiza a listinha
 async function bloquear(id) {
-  await bloquearUsuario(id)
-  await carregarUsuarios()
+  try {
+    await bloquearUsuario(id)
+    await carregarUsuarios()
+  } catch (err) {
+    console.error(err)
+  }
 }
 
-// Desbloqueia um usuário e atualiza a listinha na tela
+// Desbloqueia um usuário e atualiza a listinha
 async function desbloquear(id) {
-  await desbloquearUsuario(id)
-  await carregarUsuarios()
+  try {
+    await desbloquearUsuario(id)
+    await carregarUsuarios()
+  } catch (err) {
+    console.error(err)
+  }
 }
  
-// Busca os perfis assim que a tela carrega
+// Busca os perfis (ADM/USER)
 async function carregarPerfis() {
   try {
     perfis.value = await listarPerfis()
@@ -225,7 +233,7 @@ async function carregarPerfis() {
   }
 }
  
-// Envia o formulário de cadastro
+// Envia o formulário de cadastro e atualiza a listagem automaticamente
 async function cadastrarUsuario() {
   cadastrando.value = true
   mensagemUsuario.value = ''
@@ -237,13 +245,17 @@ async function cadastrarUsuario() {
  
     // Limpa o formulário depois de cadastrar
     novoUsuario.value = { nome: '', email: '', senha: '', perfil_id: '' }
+    
+    // ⚡ EXCELENTE PARA ESCALABILIDADE/REATIVIDADE: Recarrega a tabela de usuários em tempo real!
+    await carregarUsuarios()
   } catch (err) {
     erroUsuario.value = err.response?.data?.erro || 'Erro ao cadastrar usuário'
   } finally {
     cadastrando.value = false
   }
 }
-// Transforma a "chave" técnica em um texto amigável pro ADM ler
+
+// Transforma chaves técnicas em rótulos amigáveis
 function rotulo(chaves) {
   const nomes = {
     mensagem_bom_dia: 'Mensagem de Bom Dia',
@@ -253,9 +265,8 @@ function rotulo(chaves) {
   return nomes[chaves] || chaves
 }
 
-// Carrega as configurações atuais ao abrir a tela
+// Carrega as configurações de mensagem
 async function carregar() {
-  
   carregando.value = true
   try {
     configuracoes.value = await listarConfiguracoes()
@@ -266,7 +277,7 @@ async function carregar() {
   }
 }
 
-// Salva cada configuração alterada, uma por uma
+// Salva as mensagens de atendimento
 async function salvar() {
   salvando.value = true
   mensagem.value = ''
@@ -293,7 +304,7 @@ onMounted(() => {
 
 <style scoped>
 .configuracoes {
-  max-width: 600px;
+  max-width: 700px; /* Aumentado levemente para acomodar melhor a tabela larga */
   margin: 32px auto;
   padding: 24px;
   background: #fff;
@@ -305,7 +316,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 4px;
 }
-textarea {
+textarea, input, select {
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -327,20 +338,12 @@ button {
   color: #c0392b;
 }
 
-separador {
+/* Corrigido seletor de classe com ponto (.) */
+.separador {
   margin: 32px 0;
   border: none;
   border-top: 1px solid #eee;
 }
-select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-/* ============================================================ */
-/* SUBSTITUA o CSS .tabela-usuarios, .btn-bloquear e             */
-/* .btn-desbloquear que você já tem no <style scoped> por este   */
-/* ============================================================ */
 
 .tabela-usuarios {
   width: 100%;
@@ -372,7 +375,6 @@ select {
   vertical-align: middle;
 }
 
-/* Linha zebrada: facilita ler cada usuário separadamente */
 .tabela-usuarios tbody tr:nth-child(even) {
   background: #fafafa;
 }
@@ -381,7 +383,6 @@ select {
   background: #f0f4fa;
 }
 
-/* Divisória vertical entre colunas, sutil */
 .tabela-usuarios td + td,
 .tabela-usuarios th + th {
   border-left: 1px solid #eee;
@@ -414,5 +415,16 @@ select {
 .btn-desbloquear:hover {
   background: #27ae60;
   color: #fff;
+}
+
+.btn-voltar {
+  background: #eaeaea;
+  color: #333;
+}
+.btn-voltar:hover {
+  background: #ddd;
+}
+.mt-4 {
+  margin-top: 24px;
 }
 </style>

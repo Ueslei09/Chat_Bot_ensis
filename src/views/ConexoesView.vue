@@ -67,8 +67,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { listarConexoes } from '@/services/conexoesServices.js'
+import { socket } from '@/services/api.js' // Conexão global do Socket.IO
 
 const abaAtual = ref('ativas')
 const busca = ref('')
@@ -99,6 +100,9 @@ function rotuloTipo(tipo) {
   return nomes[tipo] || tipo
 }
 
+/**
+ * Carrega a listagem inicial das conexões ativas e arquivadas
+ */
 async function carregarConexoes() {
   carregando.value = true
   try {
@@ -112,7 +116,73 @@ async function carregarConexoes() {
   }
 }
 
-onMounted(carregarConexoes)
+// ============================================================
+// ⚡ ATUALIZAÇÃO EM TEMPO REAL VIA WEBSOCKET (SOCKET.IO)
+// ============================================================
+function configurarEventosSocket() {
+  if (!socket.connected) {
+    socket.connect()
+  }
+
+  // Ouve atualizações de status ou dados de uma conexão específica
+  socket.on('conexaoAtualizada', (conexaoModificada) => {
+    // 1. Tenta atualizar na lista de ativas
+    const indexAtiva = conexoesAtivas.value.findIndex(c => c.id === conexaoModificada.id)
+    if (indexAtiva !== -1) {
+      if (conexaoModificada.arquivada) {
+        // Se foi arquivada, remove das ativas e joga para as arquivadas
+        conexoesAtivas.value.splice(indexAtiva, 1)
+        conexoesArquivadas.value.unshift(conexaoModificada)
+      } else {
+        conexoesAtivas.value[indexAtiva] = conexaoModificada
+      }
+      atualizarContadores()
+      return
+    }
+
+    // 2. Tenta atualizar na lista de arquivadas
+    const indexArquivada = conexoesArquivadas.value.findIndex(c => c.id === conexaoModificada.id)
+    if (indexArquivada !== -1) {
+      if (!conexaoModificada.arquivada) {
+        // Se foi desarquivada, remove das arquivadas e joga para as ativas
+        conexoesArquivadas.value.splice(indexArquivada, 1)
+        conexoesAtivas.value.unshift(conexaoModificada)
+      } else {
+        conexoesArquivadas.value[indexArquivada] = conexaoModificada
+      }
+      atualizarContadores()
+      return
+    }
+
+    // 3. Se for uma conexão completamente nova que acabou de ser criada
+    if (conexaoModificada.arquivada) {
+      conexoesArquivadas.value.unshift(conexaoModificada)
+    } else {
+      conexoesAtivas.value.unshift(conexaoModificada)
+    }
+    atualizarContadores()
+  })
+}
+
+function removerEventosSocket() {
+  socket.off('conexaoAtualizada')
+}
+
+function atualizarContadores() {
+  arquivadasCount.value = conexoesArquivadas.value.length
+}
+
+// ============================================================
+// LIFECYCLE (Montagem e Desmontagem Segura das Camadas)
+// ============================================================
+onMounted(async () => {
+  await carregarConexoes()
+  configurarEventosSocket()
+})
+
+onUnmounted(() => {
+  removerEventosSocket() // Impede vazamentos de memória (Memory Leak)
+})
 </script>
 
 <style scoped>

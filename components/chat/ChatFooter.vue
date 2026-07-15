@@ -1,5 +1,6 @@
 <template>
-  <div>
+  <div ref="footerRef" class="chat-footer-container">
+    <!-- Preview de Resposta -->
     <ReplyPreview
       v-if="respondendoA && estado === 'liberado'"
       modo="resposta"
@@ -7,11 +8,13 @@
       :texto="resumoTexto(respondendoA.conteudo)"
       @cancelar="$emit('cancelar-resposta')"
     />
+    
+    <!-- Preview de Edição (Corrigido de texto="mensagem" para a variável de estado dinâmica props.textoInicial) -->
     <ReplyPreview
       v-if="editando && estado === 'liberado'"
       modo="edicao"
       rotulo="Editando"
-      texto="mensagem"
+      :texto="resumoTexto(textoInicial)"
       @cancelar="$emit('cancelar-edicao')"
     />
 
@@ -20,6 +23,7 @@
       <!-- ==================== ESTADO 1: ATENDIMENTO LIBERADO ==================== -->
       <form v-if="estado === 'liberado'" key="liberado" class="campo-envio" @submit.prevent="aoEnviar">
         <template v-if="!editando">
+          <!-- Seção: Emojis -->
           <div class="acao-wrapper">
             <button type="button" class="btn-icone" title="Emoji" @click.stop="alternarEmoji">
               <i class="bi bi-emoji-smile"></i>
@@ -31,6 +35,7 @@
             </div>
           </div>
 
+          <!-- Seção: Anexos -->
           <div class="acao-wrapper">
             <button type="button" class="btn-icone" title="Anexar" @click.stop="alternarAnexo">
               <i class="bi bi-paperclip"></i>
@@ -52,16 +57,19 @@
           <input ref="inputFoto" type="file" accept="image/*" @change="aoSelecionarArquivo" hidden />
           <input ref="inputAudio" type="file" accept="audio/*" @change="aoSelecionarArquivo" hidden />
 
-          <!-- Áudio gravado ao vivo já tem confirmação própria (✔/✕), não passa pela prévia -->
+          <!-- Gravador de Áudio -->
           <AudioRecorder v-if="!texto.trim()" @gravado="aoGravarAudio" />
         </template>
 
+        <!-- Campo de Digitação Ajustável -->
         <textarea
+          ref="textareaRef"
           v-model="texto"
           rows="1"
           class="campo-texto"
           :placeholder="editando ? 'Editar mensagem...' : 'Digite uma mensagem...'"
           @keydown.enter.exact.prevent="aoEnviar"
+          @input="ajustarAltura"
         ></textarea>
 
         <button type="submit" class="btn-enviar" :disabled="!texto.trim()">
@@ -78,10 +86,10 @@
           enquanto o atendimento estiver em andamento.
         </p>
         <div class="botoes-rodape">
-          <button class="btn btn-primary btn-sm" @click="aoClicarBotaoPrincipal">
+          <button type="button" class="btn btn-primary btn-sm" @click="aoClicarBotaoPrincipal">
             {{ podeAssumir ? 'Assumir Atendimento' : 'Solicitar Transferência' }}
           </button>
-          <button class="btn btn-link btn-sm" @click="$emit('voltarParaFila')">
+          <button type="button" class="btn btn-link btn-sm" @click="$emit('voltarParaFila')">
             Voltar para fila
           </button>
         </div>
@@ -96,7 +104,7 @@
           ou o atendimento seja retomado.
         </p>
         <div class="botoes-rodape">
-          <button class="btn btn-primary btn-sm" @click="$emit('retomarChamado')">
+          <button type="button" class="btn btn-primary btn-sm" @click="$emit('retomarChamado')">
             Retomar Atendimento
           </button>
         </div>
@@ -108,10 +116,10 @@
         <p class="titulo-rodape">Chamado encerrado</p>
         <p class="descricao-rodape">Este atendimento foi finalizado. Não é possível enviar novas mensagens.</p>
         <div class="botoes-rodape">
-          <button v-if="podeReabrir" class="btn btn-primary btn-sm" @click="$emit('reabrirChamado')">
+          <button v-if="podeReabrir" type="button" class="btn btn-primary btn-sm" @click="$emit('reabrirChamado')">
             Reabrir Chamado
           </button>
-          <button class="btn btn-link btn-sm" @click="$emit('visualizarHistorico')">
+          <button type="button" class="btn btn-link btn-sm" @click="$emit('visualizarHistorico')">
             Visualizar Histórico
           </button>
         </div>
@@ -130,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import ReplyPreview from './ReplyPreview.vue'
 import AudioRecorder from './AudioRecorder.vue'
 import AttachPreview from './AttachPreview.vue'
@@ -154,6 +162,10 @@ const emit = defineEmits([
   'confirmar-edicao', 'cancelar-edicao', 'cancelar-resposta'
 ])
 
+const texto = ref('')
+const textareaRef = ref(null)
+const footerRef = ref(null)
+
 const estado = computed(() => {
   if (props.status === 'FECHADO') return 'encerrado'
   if (props.status === 'AGUARDANDO_CLIENTE') return 'aguardandoCliente'
@@ -176,9 +188,11 @@ function aoClicarBotaoPrincipal() {
   }
 }
 
-const texto = ref('')
-
-watch(() => props.textoInicial, (novoValor) => { texto.value = novoValor })
+// Sincroniza o texto de edição vindo do componente pai
+watch(() => props.textoInicial, (novoValor) => { 
+  texto.value = novoValor || '' 
+  nextTick(ajustarAltura)
+})
 
 function resumoTexto(t) {
   if (!t) return ''
@@ -186,7 +200,7 @@ function resumoTexto(t) {
 }
 
 function aoEnviar(evento) {
-  if (evento?.shiftKey) return
+  if (evento?.shiftKey) return // Permite quebra de linha com Shift+Enter
   if (!texto.value.trim()) return
 
   if (props.editando) {
@@ -194,7 +208,20 @@ function aoEnviar(evento) {
   } else {
     emit('enviarMensagem', texto.value)
   }
+  
   texto.value = ''
+  nextTick(ajustarAltura) // Reduz a caixa de volta para o tamanho padrão de uma única linha
+}
+
+// ------------------------------------------------------------
+// AJUSTE DINÂMICO DE ALTURA (UX WhatsApp):
+// ------------------------------------------------------------
+function ajustarAltura() {
+  const textarea = textareaRef.value
+  if (!textarea) return
+  textarea.style.height = 'auto'
+  // Permite expansão até uma altura máxima confortável (120px) antes de habilitar a rolagem
+  textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`
 }
 
 // ------------------------------------------------------------
@@ -210,10 +237,11 @@ function alternarEmoji() {
 function inserirEmoji(emoji) {
   texto.value += emoji
   emojiAberto.value = false
+  nextTick(ajustarAltura)
 }
 
 // ------------------------------------------------------------
-// ANEXO — agora não envia direto, guarda o arquivo pra mostrar a prévia
+// ANEXO
 // ------------------------------------------------------------
 const menuAnexoAberto = ref(false)
 const inputDocumento = ref(null)
@@ -232,119 +260,153 @@ function abrirSeletor(tipo) {
   if (tipo === 'audio') inputAudio.value.click()
 }
 
-// Ao escolher o arquivo, NÃO envia ainda — abre a prévia
 function aoSelecionarArquivo(evento) {
   const arquivo = evento.target.files[0]
   if (arquivo) arquivoPendente.value = arquivo
   evento.target.value = ''
 }
 
-// Confirmado na tela de prévia (com ou sem legenda) -> agora sim envia
+// Dentro do ChatFooter.vue
 function confirmarEnvioArquivo(legenda) {
   emit('anexarArquivo', { arquivo: arquivoPendente.value, legenda })
   arquivoPendente.value = null
 }
-
-// Áudio gravado ao vivo já teve confirmação própria no AudioRecorder (✔/✕),
-// então vai direto, sem passar pela tela de prévia de novo
 function aoGravarAudio(arquivoAudio) {
   emit('gravarAudio', arquivoAudio)
 }
 
-function fecharMenusAoClicarFora() {
-  emojiAberto.value = false
-  menuAnexoAberto.value = false
+// ⚡ PERFORMANCE E ACESSIBILIDADE:
+// Só roda lógica pesada de fechamento por fora se um menu estiver de fato aberto!
+function fecharMenusAoClicarFora(event) {
+  if (!emojiAberto.value && !menuAnexoAberto.value) return
+
+  // Se o clique não foi dentro de nenhuma parte do footer, recolhe os dropdowns
+  if (footerRef.value && !footerRef.value.contains(event.target)) {
+    emojiAberto.value = false
+    menuAnexoAberto.value = false
+  }
 }
-onMounted(() => document.addEventListener('click', fecharMenusAoClicarFora))
-onBeforeUnmount(() => document.removeEventListener('click', fecharMenusAoClicarFora))
+
+onMounted(() => {
+  document.addEventListener('click', fecharMenusAoClicarFora, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', fecharMenusAoClicarFora, true)
+})
 
 function limpar() {
   texto.value = ''
+  nextTick(ajustarAltura)
 }
 defineExpose({ limpar })
 </script>
 
 <style scoped>
+.chat-footer-container {
+  display: flex;
+  flex-direction: column;
+  background: #f0f2f5;
+  border-top: 1px solid #e2e8f0;
+}
+
 .campo-envio {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
-  padding: 12px;
-  background: #fff;
-  border-top: 1px solid #ddd;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f0f2f5;
 }
+
 .btn-icone {
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
   padding: 6px;
-  color: #555;
+  color: #54656f;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s;
 }
+.btn-icone:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
 .acao-wrapper {
   position: relative;
 }
+
 .menu-emoji {
   position: absolute;
-  bottom: 42px;
+  bottom: 48px;
   left: 0;
   background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 30;
+  gap: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  animation: scaleIn 0.1s ease-out;
 }
 .menu-emoji button {
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 22px;
   cursor: pointer;
   padding: 4px;
-  border-radius: 6px;
+  border-radius: 8px;
+  transition: transform 0.1s;
 }
 .menu-emoji button:hover {
-  background: #f0f0f0;
+  transform: scale(1.15);
+  background: #f1f5f9;
 }
+
 .menu-anexo {
   position: absolute;
-  bottom: 42px;
+  bottom: 48px;
   left: 0;
   background: #2b2b3d;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 8px 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
-  min-width: 180px;
-  z-index: 30;
+  min-width: 190px;
+  z-index: 100;
+  animation: scaleIn 0.1s ease-out;
 }
 .menu-anexo button {
   background: none;
   border: none;
   color: #fff;
   text-align: left;
-  padding: 10px 16px;
+  padding: 10px 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.15s;
 }
 .menu-anexo button:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 .icone-item {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 13px;
   color: #fff;
 }
 .icone-item.documento { background: #6c5ce7; }
@@ -353,14 +415,23 @@ defineExpose({ limpar })
 
 .campo-texto {
   flex: 1;
-  padding: 10px 14px;
-  border: 1px solid #ccc;
+  padding: 10px 16px;
+  border: 1px solid #fff;
   border-radius: 20px;
   resize: none;
-  max-height: 100px;
+  max-height: 120px;
   font-family: inherit;
+  font-size: 14px;
   line-height: 1.4;
+  outline: none;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s;
 }
+.campo-texto:focus {
+  border-color: #cbd5e1;
+}
+
 .btn-enviar {
   background: #1a3c6e;
   color: #fff;
@@ -373,6 +444,11 @@ defineExpose({ limpar })
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: background-color 0.15s, transform 0.1s;
+}
+.btn-enviar:hover:not(:disabled) {
+  background-color: #11294a;
+  transform: scale(1.05);
 }
 .btn-enviar:disabled {
   opacity: 0.5;
@@ -380,47 +456,96 @@ defineExpose({ limpar })
 }
 
 .rodape-info {
-  padding: 18px 24px;
+  padding: 24px;
   background: #fff;
-  border-top: 1px solid #ddd;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
 }
 .icone-rodape {
-  font-size: 24px;
+  font-size: 28px;
   margin-bottom: 4px;
 }
 .titulo-rodape {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: #1e293b;
 }
 .descricao-rodape {
   margin: 0;
-  font-size: 12px;
-  color: #777;
-  max-width: 420px;
+  font-size: 13px;
+  color: #64748b;
+  max-width: 460px;
+  line-height: 1.5;
 }
 .botoes-rodape {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 12px;
+  margin-top: 12px;
 }
-.rodape-info.bloqueado .icone-rodape { color: #c0392b; }
-.rodape-info.aguardando .icone-rodape { color: #f0ad4e; }
-.rodape-info.encerrado .icone-rodape { color: #27ae60; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+.btn-primary {
+  background-color: #1a3c6e;
+  border-color: #1a3c6e;
+  color: #fff;
+}
+.btn-primary:hover {
+  background-color: #11294a;
+  border-color: #11294a;
+}
+.btn-link {
+  background: none;
+  border: none;
+  color: #64748b;
+  text-decoration: none;
+}
+.btn-link:hover {
+  color: #1a3c6e;
+  text-decoration: underline;
+}
+
+.rodape-info.bloqueado .icone-rodape { color: #ef4444; }
+.rodape-info.aguardando .icone-rodape { color: #f59e0b; }
+.rodape-info.encerrado .icone-rodape { color: #10b981; }
 
 .footer-fade-enter-active,
 .footer-fade-leave-active {
-  transition: opacity 0.25s ease;
+  transition: opacity 0.15s ease;
 }
 .footer-fade-enter-from,
 .footer-fade-leave-to {
   opacity: 0;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>

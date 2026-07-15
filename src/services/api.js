@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import { useAuthStore } from '@/stores/auth'; // Importamos a store central de autenticação
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -25,15 +26,18 @@ api.interceptors.request.use(
   }
 );
 
-// INTERCEPTOR DE RESPOSTA: Se o token expirar, desloga o usuário na hora
+// INTERCEPTOR DE RESPOSTA: Se o token expirar (401), desloga o usuário reativamente
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Token inválido ou expirado -> Limpa tudo e manda pro Login
-      localStorage.removeItem('token');
-      localStorage.removeItem('usuario');
-      window.location.href = '/login';
+      console.warn('⚠️ Sessão expirada ou não autorizada. Desconectando usuário...');
+      
+      // Obtém a instância da Store de Autenticação de forma limpa e segura
+      const authStore = useAuthStore();
+      
+      // Limpa as variáveis do Pinia, fecha o socket de forma segura e redireciona via Vue Router
+      authStore.logout();
     }
     return Promise.reject(error);
   }
@@ -42,11 +46,19 @@ api.interceptors.response.use(
 // ============================================================
 // 2. CONFIGURAÇÃO DO SOCKET.IO (Tempo Real)
 // ============================================================
-// Iniciamos com autoConnect: false para não tentar conectar sem login
 export const socket = io(API_URL, {
   autoConnect: false,
   auth: (cb) => {
-    // Busca o token atualizado toda vez que tentar conectar/reconectar
+    // Busca o token atualizado de forma dinâmica
     cb({ token: localStorage.getItem('token') });
+  }
+});
+
+// OUVINTE DE SEGURANÇA: Se o servidor rejeitar a conexão (Token expirado no Handshake)
+socket.on('connect_error', (error) => {
+  if (error.message === 'xhr poll error' || error.message === 'Authentication error') {
+    console.error('❌ Falha de autenticação no Socket.IO. Desconectando...', error.message);
+    const authStore = useAuthStore();
+    authStore.logout();
   }
 });

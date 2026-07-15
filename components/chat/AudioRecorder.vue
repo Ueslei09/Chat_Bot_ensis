@@ -3,6 +3,7 @@
     <!-- Estado normal: só o botão de microfone -->
     <button
       v-if="!gravando"
+      type="button"
       class="btn-mic"
       title="Gravar áudio"
       @click="iniciarGravacao"
@@ -14,8 +15,8 @@
     <div v-else class="gravando-barra">
       <span class="ponto-vermelho"></span>
       <span class="tempo">{{ tempoFormatado }}</span>
-      <button class="btn-cancelar-gravacao" title="Cancelar" @click="cancelarGravacao">✕</button>
-      <button class="btn-enviar-gravacao" title="Enviar áudio" @click="pararEEnviar">✔</button>
+      <button type="button" class="btn-cancelar-gravacao" title="Cancelar" @click="cancelarGravacao">✕</button>
+      <button type="button" class="btn-enviar-gravacao" title="Enviar áudio" @click="pararEEnviar">✔</button>
     </div>
 
     <p v-if="erro" class="erro-microfone">{{ erro }}</p>
@@ -25,20 +26,18 @@
 <script setup>
 import { ref, onBeforeUnmount } from 'vue'
 
-// Emite 'gravado' com um objeto File (mesmo formato que o input de
-// upload de arquivo já usa), pra reaproveitar o mesmo fluxo de envio.
 const emit = defineEmits(['gravado'])
 
 const gravando = ref(false)
 const erro = ref('')
 const tempoSegundos = ref(0)
+const tempoFormatado = ref('00:00')
 
 let mediaRecorder = null
 let pedacos = []
 let streamAtual = null
 let intervaloTempo = null
-
-const tempoFormatado = ref('00:00')
+let deveEnviar = false // Flag de controle de fluxo seguro para o evento onstop
 
 function atualizarTempo() {
   tempoSegundos.value++
@@ -49,23 +48,55 @@ function atualizarTempo() {
 
 async function iniciarGravacao() {
   erro.value = ''
+  pedacos = []
+  deveEnviar = false
+
   try {
     streamAtual = await navigator.mediaDevices.getUserMedia({ audio: true })
-    mediaRecorder = new MediaRecorder(streamAtual)
-    pedacos = []
-
-    mediaRecorder.ondataavailable = (evento) => {
-      if (evento.data.size > 0) pedacos.push(evento.data)
+    
+    // ⚡ SUPORTE AO SAFARI (iOS/macOS): Detecta qual codec de áudio é nativamente aceito pelo dispositivo
+    let options = { mimeType: 'audio/webm' }
+    if (!MediaRecorder.isTypeSupported('audio/webm')) {
+      if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        options = { mimeType: 'audio/ogg' }
+      } else {
+        options = { mimeType: 'audio/mp4' } // Fallback para Safari/Apple devices
+      }
     }
 
-    mediaRecorder.start()
+    mediaRecorder = new MediaRecorder(streamAtual, options)
+
+    // ⚡ FLUXO CENTRALIZADO: Ouvintes configurados na montagem do fluxo
+    mediaRecorder.ondataavailable = (evento) => {
+      if (evento.data && evento.data.size > 0) {
+        pedacos.push(evento.data)
+      }
+    }
+
+    mediaRecorder.onstop = () => {
+      if (deveEnviar && pedacos.length > 0) {
+        // Usa o mimeType dinâmico suportado pelo dispositivo
+        const mimeType = mediaRecorder.mimeType || 'audio/webm'
+        const ext = mimeType.split(';')[0].split('/')[1] || 'webm'
+        
+        const blob = new Blob(pedacos, { type: mimeType })
+        const arquivo = new File([blob], `audio-${Date.now()}.${ext}`, { type: mimeType })
+        
+        emit('gravado', arquivo)
+      }
+      // Limpa os recursos sempre ao parar, independente de ter enviado ou descartado
+      encerrarStream()
+    }
+
+    mediaRecorder.start(250) // Captura em blocos curtos e constantes de 250ms (mais estável)
+    
     gravando.value = true
     tempoSegundos.value = 0
     tempoFormatado.value = '00:00'
     intervaloTempo = setInterval(atualizarTempo, 1000)
   } catch (err) {
     console.error('Erro ao acessar microfone:', err)
-    erro.value = 'Não foi possível acessar o microfone. Verifique a permissão do navegador.'
+    erro.value = 'Não foi possível acessar o microfone. Verifique a permissão do seu navegador.'
   }
 }
 
@@ -74,35 +105,34 @@ function encerrarStream() {
     streamAtual.getTracks().forEach(track => track.stop())
     streamAtual = null
   }
-  clearInterval(intervaloTempo)
+  if (intervaloTempo) {
+    clearInterval(intervaloTempo)
+    intervaloTempo = null
+  }
   gravando.value = false
 }
 
 function cancelarGravacao() {
+  deveEnviar = false
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop()
+  } else {
+    encerrarStream()
   }
-  pedacos = []
-  encerrarStream()
 }
 
 function pararEEnviar() {
-  if (!mediaRecorder) return
-
-  mediaRecorder.onstop = () => {
-    const blob = new Blob(pedacos, { type: 'audio/webm' })
-    // Transforma o Blob num File, com nome único, pra reaproveitar
-    // o mesmo fluxo de upload que já existe pra imagem/PDF
-    const arquivo = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' })
-    emit('gravado', arquivo)
-    encerrarStream()
-  }
-
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return
+  deveEnviar = true
   mediaRecorder.stop()
 }
 
-// Garante que o microfone é liberado se o componente for destruído no meio da gravação
+// Limpeza de recursos rigorosa ao destruir o componente para evitar a luz de "microfone ativo" no navegador
 onBeforeUnmount(() => {
+  deveEnviar = false
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+  }
   encerrarStream()
 })
 </script>
@@ -118,30 +148,42 @@ onBeforeUnmount(() => {
   font-size: 20px;
   cursor: pointer;
   padding: 6px;
+  border-radius: 50%;
+  transition: background-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+.btn-mic:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .gravando-barra {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: #fdecea;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 .ponto-vermelho {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #c0392b;
-  animation: piscar 1s infinite;
+  animation: piscar 1.2s infinite;
 }
 @keyframes piscar {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.9); }
 }
 .tempo {
   font-size: 13px;
   color: #c0392b;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .btn-cancelar-gravacao,
@@ -152,10 +194,18 @@ onBeforeUnmount(() => {
   height: 24px;
   cursor: pointer;
   font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+.btn-cancelar-gravacao:hover,
+.btn-enviar-gravacao:hover {
+  transform: scale(1.1);
 }
 .btn-cancelar-gravacao {
-  background: #eee;
-  color: #666;
+  background: #eaeaea;
+  color: #444;
 }
 .btn-enviar-gravacao {
   background: #27ae60;
@@ -165,6 +215,7 @@ onBeforeUnmount(() => {
 .erro-microfone {
   font-size: 11px;
   color: #c0392b;
-  margin: 4px 0 0;
+  margin: 0 0 0 8px;
+  font-weight: 500;
 }
 </style>

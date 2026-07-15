@@ -15,10 +15,12 @@
 
       <div class="campo">
         <label>Número</label>
-        <input  v-model="form.telefone"
-         type="text"
-           :placeholder="form.eh_grupo ? 'ID do grupo (ex: 12036xxxx@g.us)' : '5511999999999'"
-            required />
+        <input  
+          v-model="form.telefone"
+          type="text"
+          :placeholder="form.eh_grupo ? 'ID do grupo (ex: 12036xxxx@g.us)' : '5511999999999'"
+          required 
+        />
       </div>
 
       <div class="campo">
@@ -29,16 +31,18 @@
           <option value="helpdesk">Helpdesk</option>
         </select>
       </div>
+
       <div class="campo campo-checkbox">
-  <label>
-    <input type="checkbox" v-model="form.eh_grupo" />
-    É um grupo do WhatsApp?
-  </label>
-</div>
+        <label>
+          <input type="checkbox" v-model="form.eh_grupo" />
+          É um grupo do WhatsApp?
+        </label>
+      </div>
 
       <button type="submit" class="btn-salvar">
         {{ editandoId ? 'Salvar alterações' : 'Adicionar contato' }}
       </button>
+      
       <button v-if="editandoId" type="button" class="btn-cancelar-edicao" @click="cancelarEdicao">
         Cancelar
       </button>
@@ -53,7 +57,7 @@
         Importar contatos (.csv: nome,telefone,conexao)
         <input type="file" accept=".csv" @change="importarArquivo" hidden />
       </label>
-      <p v-if="mensagemImportacao" class="sucesso">{{ mensagemImportacao }}</p>
+      <p v-if="mensagemImportacao" class="sucesso">{{ messageImportacao || mensagemImportacao }}</p>
     </div>
 
     <hr class="separador" />
@@ -66,14 +70,20 @@
         placeholder="Buscar por nome ou número..."
         @input="buscarComFiltro"
       />
+
+      <!-- Filtro 1: Conexões -->
       <select v-model="filtroConexao" @change="buscarComFiltro">
         <option value="">Todas as conexões</option>
         <option value="whatsapp">WhatsApp</option>
         <option value="chat">Chat</option>
         <option value="helpdesk">Helpdesk</option>
+      </select>
+
+      <!-- Filtro 2: Tipo de Contato (Corrigido para usar a variável filtroTipo correta) -->
+      <select v-model="filtroTipo" @change="buscarComFiltro">
         <option value="">Pessoas e grupos</option>
         <option value="false">Só pessoas</option>
-         <option value="true">Só grupos</option>
+        <option value="true">Só grupos</option>
       </select>
 
       <label class="check-arquivados">
@@ -91,19 +101,21 @@
           <th>Nome</th>
           <th>Número</th>
           <th>Conexão</th>
-          <th></th>
+          <th class="text-right">Ações</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="carregando">
-          <td colspan="4">Carregando...</td>
+          <td colspan="4" class="text-center py-4 text-muted">Carregando...</td>
         </tr>
         <tr v-else-if="contatos.length === 0">
-          <td colspan="4">Nenhum contato encontrado.</td>
+          <td colspan="4" class="text-center py-4 text-muted">Nenhum contato encontrado.</td>
         </tr>
-        <tr v-for="contato in contatos" :key="contato.id">
-          <td><span v-if="contato.eh_grupo" class="badge-grupo">👥 Grupo</span>
-            {{ contato.nome }}</td>
+        <tr v-else v-for="contato in contatos" :key="contato.id">
+          <td>
+            <span v-if="contato.eh_grupo" class="badge-grupo">👥 Grupo</span>
+            {{ contato.nome }}
+          </td>
           <td>{{ contato.telefone }}</td>
           <td>
             <span class="badge-conexao" :class="contato.conexao">
@@ -111,30 +123,26 @@
             </span>
           </td>
           <td class="acoes-tabela">
-  <button class="btn-abrir-chamado" @click="abrirChamado(contato)">
-    Abrir chamado
-  </button>
- 
-  <button class="btn-editar" @click="editarContato(contato)">Editar</button>
- 
-  <button
-    v-if="!contato.arquivado"
-    class="btn-arquivar"
-    @click="arquivar(contato.id)"
-  >
-    Arquivar
-  </button>
-  <button
-    v-else
-    class="btn-desarquivar"
-    @click="desarquivar(contato.id)"
-  >
-    Desarquivar
-  </button>
- 
-  <button class="btn-excluir" @click="excluir(contato.id)">Excluir</button>
-</td>
- 
+            <button class="btn-abrir-chamado" @click="abrirChamado(contato)">
+              Abrir chamado
+            </button>
+            <button class="btn-editar" @click="editarContato(contato)">Editar</button>
+            <button
+              v-if="!contato.arquivado"
+              class="btn-arquivar"
+              @click="arquivar(contato.id)"
+            >
+              Arquivar
+            </button>
+            <button
+              v-else
+              class="btn-desarquivar"
+              @click="desarquivar(contato.id)"
+            >
+              Desarquivar
+            </button>
+            <button class="btn-excluir" @click="excluir(contato.id)">Excluir</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -156,8 +164,6 @@ import {
 } from '@/services/contatoServices.js'
 import { criarChamado, assumirChamado } from '@/services/chamadoServices.js'
  
-// Nova variável de filtro
-const filtroTipo = ref('')
 const router = useRouter()
 
 const contatos = ref([])
@@ -168,6 +174,7 @@ const mensagemImportacao = ref('')
 
 const filtroBusca = ref('')
 const filtroConexao = ref('')
+const filtroTipo = ref('') // Controla se pesquisa 'false' (só pessoas) ou 'true' (só grupos)
 const mostrarArquivados = ref(false)
 
 const editandoId = ref(null)
@@ -178,7 +185,6 @@ const form = ref({
   eh_grupo: false
 })
 
-// carregarContatos() precisa mandar o novo filtro:
 async function carregarContatos() {
   carregando.value = true
   try {
@@ -219,7 +225,6 @@ async function salvarContato() {
   }
 }
 
-// editarContato() precisa carregar esse campo também:
 function editarContato(contato) {
   editandoId.value = contato.id
   form.value = {
@@ -230,7 +235,6 @@ function editarContato(contato) {
   }
 }
 
-// cancelarEdicao() também precisa resetar esse campo:
 function cancelarEdicao() {
   editandoId.value = null
   form.value = { nome: '', telefone: '', conexao: 'whatsapp', eh_grupo: false }
@@ -248,13 +252,11 @@ async function excluir(id) {
   }
 }
 
-// Arquiva um contato (some da lista padrão, mas continua no banco)
 async function arquivar(id) {
   await arquivarContato(id)
   await carregarContatos()
 }
 
-// Desarquiva um contato
 async function desarquivar(id) {
   await desarquivarContato(id)
   await carregarContatos()
@@ -290,33 +292,22 @@ function voltarParaChat() {
   router.push('/app/chamados')
 }
 
-/**
- * Abre um novo chamado pra esse contato, já assume automaticamente
- * (pula a fila) e manda direto pra tela de chat, já na conversa.
- */
 async function abrirChamado(contato) {
   try {
-    // Cria o chamado (nasce com status ABERTO)
     const novoChamado = await criarChamado(contato.id)
- 
-    // Assume na hora, pro usuário logado (vira EM_ATENDIMENTO)
     await assumirChamado(novoChamado.id)
- 
-    // Manda pra tela de chat, já avisando qual chamado abrir
     router.push({ path: '/app/chamados', query: { abrir: novoChamado.id } })
   } catch (err) {
     erro.value = err.response?.data?.erro || 'Erro ao abrir chamado'
   }
 }
 
-
-
 onMounted(carregarContatos)
 </script>
 
 <style scoped>
 .contatos {
-  max-width: 900px;
+  max-width: 950px; /* Alargado sutilmente para acomodar a tabela */
   margin: 32px auto;
   padding: 24px;
   background: #fff;
@@ -326,17 +317,23 @@ onMounted(carregarContatos)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
-.btn-abrir-chamado {
-  background: none;
-  border: none;
-  color: #1a3c6e;
+.btn-voltar {
+  background: #f4f6f9;
+  border: 1px solid #ddd;
+  color: #333;
+  padding: 8px 16px;
+  border-radius: 20px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
 }
-.btn-abrir-chamado:hover {
-  text-decoration: underline;
+.btn-voltar:hover {
+  background: #1a3c6e;
+  color: #fff;
+  border-color: #1a3c6e;
 }
 
 .form-contato {
@@ -365,6 +362,7 @@ onMounted(carregarContatos)
   padding: 9px 18px;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: 500;
 }
 .btn-cancelar-edicao {
   background: #eee;
@@ -385,6 +383,7 @@ onMounted(carregarContatos)
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
 }
 
 .separador {
@@ -446,6 +445,7 @@ onMounted(carregarContatos)
   padding: 12px 16px;
   font-size: 14px;
   border-bottom: 1px solid #eee;
+  vertical-align: middle;
 }
 .tabela-contatos tbody tr:nth-child(even) {
   background: #fafafa;
@@ -456,6 +456,7 @@ onMounted(carregarContatos)
   padding: 3px 10px;
   border-radius: 10px;
   text-transform: capitalize;
+  font-weight: 500;
 }
 .badge-conexao.whatsapp {
   background: #dcf8e8;
@@ -474,6 +475,19 @@ onMounted(carregarContatos)
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end; /* Alinha os botões elegantemente à direita */
+}
+.btn-abrir-chamado {
+  background: none;
+  border: none;
+  color: #1a3c6e;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+}
+.btn-abrir-chamado:hover {
+  text-decoration: underline;
 }
 .btn-editar {
   background: #e0ecff;
@@ -538,5 +552,14 @@ onMounted(carregarContatos)
   margin-right: 6px;
 }
 
-
+.text-right {
+  text-align: right !important;
+}
+.text-center {
+  text-align: center;
+}
+.py-4 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
 </style>

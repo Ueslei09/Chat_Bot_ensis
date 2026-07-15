@@ -1,5 +1,6 @@
 // Ajustado para importar a constante nomeada { api } do api.js
 import { api } from './api'
+import axios from 'axios';
 
 /**
  * Lista as mensagens de um chamado específico.
@@ -32,18 +33,18 @@ export async function apagarMensagem(mensagemId) {
  * @param {number} chamadoId
  * @param {File} arquivo - objeto File vindo de um <input type="file">
  */
-export async function enviarArquivo(chamadoId, arquivo, legenda = '') {
-  const formData = new FormData()
-  formData.append('chamado_id', chamadoId)
-  formData.append('arquivo', arquivo)
-  if (legenda) formData.append('legenda', legenda)
- 
+
+ // Importe a instância que já tem o baseUrl configurado para localhost:3000
+
+export async function enviarArquivo(formData) {
+  // Use a instância 'api' em vez de 'axios' para garantir que ele vá para a porta correta
   const resposta = await api.post('/mensagens/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
-  return resposta.data
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return resposta.data;
 }
- 
 /**
  * Monta a URL completa de um arquivo (o backend guarda só o caminho relativo).
  * @param {string} caminho - ex: '/uploads/123-foto.png'
