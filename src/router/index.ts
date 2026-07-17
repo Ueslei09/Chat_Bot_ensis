@@ -15,6 +15,8 @@ const ConfiguracoesView = () => import('@/views/ConfiguracaoView.vue')
 const ContatosView = () => import('@/views/ContatosView.vue')
 const ConexoesView = () => import('@/views/ConexoesView.vue')
 const RespostasRapidasView = () => import('@/views/respostaRapidaView.vue')
+const EsqueciSenhaView = () => import('@/views/ForgotPasswordView.vue')
+const RedefinirSenhaView = () => import('@/views/ResetPasswordView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -33,9 +35,22 @@ const router = createRouter({
           path: 'admin-login',
           name: 'admin-login',
           component: AdminLoginView
-        }
+        },
+        {
+    path: '/esqueci-senha',
+    name: 'esqueci-senha',
+    component: EsqueciSenhaView,
+    meta: { requerAutenticacao: false } // Rota livre
+  },
+  {
+    path: '/redefinir-senha',
+    name: 'redefinir-senha',
+    component: RedefinirSenhaView,
+    meta: { requerAutenticacao: false } // Rota livre
+  },
       ]
     },
+    
 
     // 🧠 ROTAS DO SISTEMA (APÓS LOGIN)
     {

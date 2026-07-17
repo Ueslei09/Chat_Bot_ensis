@@ -33,6 +33,12 @@
             placeholder="Digite sua senha"
             required
           />
+          <!-- 💡 LINK ADICIONADO AQUI -->
+          <div class="forgot-wrapper">
+            <router-link to="/esqueci-senha" class="link-forgot">
+              Esqueci a senha?
+            </router-link>
+          </div>
         </div>
 
         <!-- Mostra erro de login, se houver -->
@@ -137,6 +143,20 @@ async function login() {
   text-decoration: none;
 }
 .link-admin:hover {
+  text-decoration: underline;
+}
+
+/* 💡 ESTILOS ADICIONADOS PARA O NOVOS LINKS */
+.forgot-wrapper {
+  text-align: right;
+  margin-top: 6px;
+}
+.link-forgot {
+  font-size: 12px;
+  color: #1a3c6e;
+  text-decoration: none;
+}
+.link-forgot:hover {
   text-decoration: underline;
 }
 </style>

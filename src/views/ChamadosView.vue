@@ -16,8 +16,36 @@
 
         <p v-if="mensagemAcao" class="mensagem-acao">{{ mensagemAcao }}</p>
 
-        <ChatMessages :mensagens="mensagens" :carregando="carregandoMensagens" :meu-id="meuId" :sou-admin="admin"
-          @responder="responder" @encaminhar="abrirModalEncaminhar" @editar="iniciarEdicao" @apagar="apagar" />
+        <!-- Container estrutural que segura a rolagem das mensagens e o botão flutuante de descer -->
+        <div class="chat-mensagens-container-pai">
+          <ChatMessages 
+            ref="chatMessagesComponent"
+            :mensagens="mensagens" 
+            :carregando="carregandoMensagens" 
+            :meu-id="meuId" 
+            :sou-admin="admin"
+            @responder="responder" 
+            @encaminhar="abrirModalEncaminhar" 
+            @editar="iniciarEdicao" 
+            @apagar="apagar" 
+            @reagir="reagirMensagem"
+            @carregar-mais="carregarMaisMensagens"
+            @scroll-monitor="monitorarScroll"
+          />
+
+          <!-- 🔽 Botão Flutuante Redondo de Scroll para o Fim (Sempre fixo em relação ao chat) -->
+          <button 
+            v-show="mostrarBotaoScroll" 
+            class="btn-scroll-fim" 
+            @click="rolarParaOFim"
+            type="button"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M12 15.6l-6-6 1.4-1.4 4.6 4.6 4.6-4.6 1.4 1.4z" />
+            </svg>
+            <span v-if="mensagensNaoLidas > 0" class="badge-novas-mensagens">{{ mensagensNaoLidas }}</span>
+          </button>
+        </div>
 
         <ChatFooter :usuario="usuarioLogado" :chamado="chamadoSelecionado" :status="chamadoSelecionado?.status"
           :pode-assumir="podeAssumirChamado" :pode-reabrir="true" :respondendo-a="respondendoA" :editando="!!editandoId"
@@ -36,8 +64,7 @@
         <label>Transferir para atendente</label>
         <select v-model="atendenteEscolhido">
           <option value="" disabled>Selecione...</option>
-          <option v-for="atendente in atendentes" :key="atendente.id" :value="atendente.id">{{ atendente.nome }}
-          </option>
+          <option v-for="atendente in atendentes" :key="atendente.id" :value="atendente.id">{{ atendente.nome }}</option>
         </select>
         <label>Adicionar comentário</label>
         <textarea v-model="comentarioTransferir" rows="3" placeholder="Adicionar comentário"></textarea>
@@ -82,6 +109,7 @@
         </div>
       </div>
     </div>
+
     <ChatDrawer :aberto="detalhesAbertos" :detalhes="detalhesChamado" :carregando="carregandoDetalhes"
       @fechar="detalhesAbertos = false" @recarregar="carregarDetalhes"
       @transferir="detalhesAbertos = false; abrirModalTransferir()"
@@ -89,9 +117,9 @@
 
   </div>
 </template>
-<script setup>
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+<script setup>
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ChatSidebar from '../../components/chat/ChatSidebar.vue'
@@ -101,7 +129,6 @@ import ChatFooter from '../../components/chat/ChatFooter.vue'
 import ChatDrawer from '../../components/chat/ChatDrawer.vue'
 import { listarAtendentes } from '@/services/usuariosServices.js'
 
-// Importamos a conexão global do socket criada em api.js
 import { socket } from '@/services/api.js'
 
 import {
@@ -128,6 +155,47 @@ import { isAdmin, getIdUsuario, getNomeUsuario } from '@/services/authServices.j
 const route = useRoute()
 
 // ------------------------------------------------------------
+// ESTADOS DO SCROLL E COMPONENTES
+// ------------------------------------------------------------
+const chatMessagesComponent = ref(null)
+const mostrarBotaoScroll = ref(false)
+const mensagensNaoLidas = ref(0)
+let elementoScroll = null
+
+// Executa a rolagem suave até o fim do histórico
+function rolarParaOFim() {
+  if (elementoScroll) {
+    elementoScroll.scrollTo({
+      top: elementoScroll.scrollHeight,
+      behavior: 'smooth'
+    })
+  }
+  mostrarBotaoScroll.value = false
+  mensagensNaoLidas.value = 0
+}
+
+// Monitora o evento de scroll enviado pela lista de mensagens
+function monitorarScroll(e) {
+  const { scrollTop, scrollHeight, clientHeight } = e.target
+  const distanciaDoFim = scrollHeight - scrollTop - clientHeight
+  
+  // Mostra o botão redondo flutuante se subiu mais de 300px
+  mostrarBotaoScroll.value = distanciaDoFim > 300
+
+  if (distanciaDoFim < 20) {
+    mensagensNaoLidas.value = 0
+  }
+}
+
+// Observa quando o componente ChatMessages é montado para vincular o elemento interno de scroll
+watch(chatMessagesComponent, (novoComponente) => {
+  if (novoComponente) {
+    // Captura o contêiner interno com base na referência exposta
+    elementoScroll = novoComponente.scrollContainer || novoComponente.$el?.querySelector('.area-mensagens') || novoComponente.$el
+  }
+})
+
+// ------------------------------------------------------------
 // ESTADOS GLOBAIS / REFS
 // ------------------------------------------------------------
 const abaAtual = ref('EM_ATENDIMENTO')
@@ -151,6 +219,13 @@ const usuarioLogado = computed(() => ({
 
 const podeAssumirChamado = computed(() => admin)
 
+function reagirMensagem({ mensagemId, emoji }) {
+  const index = mensagens.value.findIndex(m => m.id === mensagemId)
+  if (index !== -1) {
+    mensagens.value[index].reacao = emoji
+  }
+}
+
 // ------------------------------------------------------------
 // ⚡ MOTOR EM TEMPO REAL: SOCKET.IO (Segurança & Performance)
 // ------------------------------------------------------------
@@ -159,19 +234,24 @@ function configurarEventosSocket() {
     socket.connect()
   }
 
-  // Escuta novas mensagens recebidas no sistema (via WhatsApp ou outro atendente)
   socket.on('novaMensagem', (mensagem) => {
-    // Se a mensagem pertence ao chamado que estou visualizando na tela, adiciona na lista
     if (chamadoSelecionado.value && mensagem.chamado_id === chamadoSelecionado.value.id) {
-      // Evita duplicados comparando IDs
       const jaExiste = mensagens.value.some(m => m.id === mensagem.id)
       if (!jaExiste) {
         mensagens.value.push(mensagem)
+        
+        // Se o usuário não está no fundo do chat, incrementa mensagens não lidas
+        if (mostrarBotaoScroll.value) {
+          mensagensNaoLidas.value++
+        } else {
+          nextTick(() => {
+            rolarParaOFim()
+          })
+        }
       }
     }
   })
 
-  // Escuta atualizações físicas nas mensagens (Edições)
   socket.on('mensagemEditada', (mensagemAtualizada) => {
     if (chamadoSelecionado.value && mensagemAtualizada.chamado_id === chamadoSelecionado.value.id) {
       const index = mensagens.value.findIndex(m => m.id === mensagemAtualizada.id)
@@ -181,34 +261,28 @@ function configurarEventosSocket() {
     }
   })
 
-  // Escuta exclusões de mensagens (Apagadas)
   socket.on('mensagemApagada', ({ id, chamado_id }) => {
     if (chamadoSelecionado.value && chamado_id === chamadoSelecionado.value.id) {
       mensagens.value = mensagens.value.filter(m => m.id !== id)
     }
   })
 
-  // Escuta atualizações nos chamados (status, transferências, etc.)
   socket.on('chamadoAtualizado', (chamadoModificado) => {
-    // Atualiza a lista lateral de chamados em tempo real
     const index = chamados.value.findIndex(c => c.id === chamadoModificado.id)
     
     if (index !== -1) {
-      // Se o chamado mudou de status e não pertence mais à aba ativa, remove da tela
       if (chamadoModificado.status !== abaAtual.value) {
         chamados.value.splice(index, 1)
         if (chamadoSelecionado.value?.id === chamadoModificado.id) {
           chamadoSelecionado.value = null
         }
       } else {
-        // Apenas atualiza as informações do chamado
         chamados.value[index] = chamadoModificado
         if (chamadoSelecionado.value?.id === chamadoModificado.id) {
           chamadoSelecionado.value = chamadoModificado
         }
       }
     } else if (chamadoModificado.status === abaAtual.value) {
-      // Se o chamado foi para a aba atual, adiciona na lista lateral
       chamados.value.unshift(chamadoModificado)
     }
   })
@@ -228,7 +302,6 @@ async function assumirForcado() {
   try {
     await transferirChamado(chamadoSelecionado.value.id, meuId)
     mensagemAcao.value = 'Você assumiu o chamado.'
-    // A atualização lateral ocorrerá via Socket ('chamadoAtualizado')
   } catch (err) {
     mensagemAcao.value = err.response?.data?.erro || 'Erro ao assumir chamado'
   }
@@ -277,6 +350,9 @@ async function selecionarChamado(chamado) {
   respondendoA.value = null
   editandoId.value = null
   await carregarMensagens()
+  nextTick(() => {
+    rolarParaOFim()
+  })
 }
 
 async function assumir() {
@@ -386,38 +462,44 @@ async function carregarMensagens() {
 
 async function enviar(texto) {
   try {
-    await enviarMensagem({
+    const novaMensagem = await enviarMensagem({
       chamado_id: chamadoSelecionado.value.id,
       tipo: 'TEXTO',
       conteudo: texto,
       resposta_a: respondendoA.value?.id || null
     })
+    
+    const jaExiste = mensagens.value.some(m => m.id === novaMensagem.id)
+    if (!jaExiste) {
+      mensagens.value.push(novaMensagem)
+    }
+
     respondendoA.value = null
-    // Nota: NÃO chamamos carregarMensagens() aqui. O próprio backend emite o evento "novaMensagem" via Socket e atualiza a tela na hora!
+    nextTick(() => {
+      rolarParaOFim()
+    })
   } catch (err) {
     console.error('Erro ao enviar mensagem:', err)
   }
 }
 
-// NO SEU CHAMADOSVIEW.VUE:
 async function enviarArquivoSelecionado(payload) {
   try {
     const formData = new FormData()
-    
-    // ⚡ SINCRONIA TOTAL: O primeiro parâmetro DEVE ser 'arquivo'
     formData.append('arquivo', payload.arquivo) 
-    
-    // Envia a legenda se houver (o seu controller.upload deve capturar req.body.legenda)
     formData.append('legenda', payload.legenda || '')
-    
-    // Envia o ID do chamado associado (req.body.chamado_id ou chamadoId dependendo do seu controller)
     formData.append('chamado_id', chamadoSelecionado.value.id)
 
-    // Dispara o serviço do Axios
-    await enviarArquivo(formData) 
+    const novaMensagemAnexo = await enviarArquivo(formData) 
     
-    // Recarrega as mensagens na tela para exibir o PDF enviado
-    await carregarMensagens()
+    const jaExiste = mensagens.value.some(m => m.id === novaMensagemAnexo.id)
+    if (!jaExiste) {
+      mensagens.value.push(novaMensagemAnexo)
+    }
+
+    nextTick(() => {
+      rolarParaOFim()
+    })
   } catch (error) {
     console.error("Erro ao enviar arquivo:", error)
   }
@@ -427,7 +509,6 @@ async function apagar(mensagemId) {
   if (!confirm('Apagar esta mensagem?')) return
   try {
     await apagarMensagem(mensagemId)
-    // Atualizado em tempo real pelo Socket
   } catch (err) {
     console.error('Erro ao apagar mensagem:', err)
   }
@@ -518,13 +599,48 @@ async function abrirDetalhes() {
 }
 
 // ------------------------------------------------------------
+// PAGINAÇÃO / CARREGAR HISTÓRICO ANTERIOR
+// ------------------------------------------------------------
+async function carregarMaisMensagens() {
+  if (carregandoMensagens.value) return
+  
+  try {
+    carregandoMensagens.value = true
+    const limite = 20
+    const primeiraMensagemId = mensagens.value[0]?.id
+    
+    const historicoAntigo = await listarMensagens(chamadoSelecionado.value.id, {
+      limite,
+      antes_de: primeiraMensagemId
+    })
+
+    if (historicoAntigo && historicoAntigo.length > 0) {
+      const alturaAnterior = elementoScroll ? elementoScroll.scrollHeight : 0
+
+      mensagens.value = [...historicoAntigo, ...mensagens.value]
+
+      nextTick(() => {
+        if (elementoScroll) {
+          elementoScroll.scrollTop = elementoScroll.scrollHeight - alturaAnterior
+        }
+      })
+    } else {
+      alert("Todas as mensagens já foram carregadas!")
+    }
+  } catch (err) {
+    console.error("Erro ao carregar mais histórico:", err)
+  } finally {
+    carregandoMensagens.value = false
+  }
+}
+
+// ------------------------------------------------------------
 // LIFECYCLE (Montagem e Desmontagem Segura)
 // ------------------------------------------------------------
 onMounted(async () => {
   await carregarChamados()
   carregarAtendentes()
   
-  // Ativa os listeners em tempo real
   configurarEventosSocket()
 
   const idParaAbrir = route.query.abrir
@@ -534,8 +650,6 @@ onMounted(async () => {
   }
 })
 
-// 🔥 EXTRAMAMENTE IMPORTANTE PARA ESCALABILIDADE:
-// Destrói os ouvintes ao sair da tela para evitar vazamento de memória!
 onUnmounted(() => {
   removerEventosSocket()
 })
@@ -575,7 +689,7 @@ onUnmounted(() => {
   background: #eef3fb;
 }
 
-/* ---------- MODAIS (permanecem no orquestrador) ---------- */
+/* ---------- MODAIS ---------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -666,5 +780,65 @@ onUnmounted(() => {
 .btn-confirmar:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ---------- 📦 CONTAINER ESTRUTURAL DA ROLAGEM ---------- */
+.chat-mensagens-container-pai {
+  position: relative !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 🌟 BOTÃO REDONDO FLUTUANTE DE ROLAGEM PARA O FIM */
+.btn-scroll-fim {
+  position: absolute !important;
+  bottom: 16px !important;
+  right: 20px !important;
+  background-color: #ffffff !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 42px !important;
+  height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  cursor: pointer !important;
+  z-index: 999 !important;
+  outline: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-scroll-fim:hover {
+  background-color: #f8f9fa !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16) !important;
+}
+
+.btn-scroll-fim svg {
+  fill: #54656f !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* Badge do Contador verde WhatsApp */
+.badge-novas-mensagens {
+  position: absolute !important;
+  top: -4px !important;
+  right: -2px !important;
+  background-color: #00a884 !important;
+  color: #ffffff !important;
+  font-size: 10px !important;
+  font-weight: bold !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 4px !important;
+  border: 2px solid #ffffff !important;
 }
 </style>
