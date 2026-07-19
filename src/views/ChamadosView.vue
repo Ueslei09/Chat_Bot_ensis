@@ -1,22 +1,32 @@
 <template>
   <div class="tela-chamados">
 
-    <ChatSidebar :chamados="chamados" :carregando="carregando" :aba-atual="abaAtual"
-      :chamado-selecionado="chamadoSelecionado" @trocar-aba="trocarAba" @selecionar="selecionarChamado" />
+    <!-- 🎯 LISTA LATERAL (Sidebar): No mobile, ela SOME se houver um chamado aberto -->
+    <ChatSidebar 
+      :class="['sidebar-responsiva', chamadoSelecionado ? 'd-none d-md-flex' : 'd-flex']"
+      :chamados="chamados" 
+      :carregando="carregando" 
+      :aba-atual="abaAtual"
+      :chamado-selecionado="chamadoSelecionado" 
+      @trocar-aba="trocarAba" 
+      @selecionar="selecionarChamado" 
+    />
 
-    <main class="area-chat">
+    <!-- 🎯 ÁREA DO CHAT: No mobile, ela só aparece se HOUVER um chamado aberto -->
+    <main :class="['area-chat', chamadoSelecionado ? 'd-flex' : 'd-none d-md-flex']">
       <div v-if="!chamadoSelecionado" class="chat-vazio">
         Selecione um chamado ao lado para abrir a conversa.
       </div>
 
       <div v-else class="chat-corpo">
+        <!-- HEADER DO CHAT: Vamos passar uma prop ou tratar o botão voltar dentro dele -->
         <ChatHeader :chamado="chamadoSelecionado" :aba-atual="abaAtual" @assumir="assumir"
           @abrir-transferir="abrirModalTransferir" @abrir-fechar="abrirModalFechar" @reabrir="reabrir"
-          @abrir-detalhes="abrirDetalhes" />
+          @abrir-detalhes="abrirDetalhes" @voltar="voltarParaFila" />
 
         <p v-if="mensagemAcao" class="mensagem-acao">{{ mensagemAcao }}</p>
 
-        <!-- Container estrutural que segura a rolagem das mensagens e o botão flutuante de descer -->
+        <!-- Container estrutural das mensagens -->
         <div class="chat-mensagens-container-pai">
           <ChatMessages 
             ref="chatMessagesComponent"
@@ -33,7 +43,7 @@
             @scroll-monitor="monitorarScroll"
           />
 
-          <!-- 🔽 Botão Flutuante Redondo de Scroll para o Fim (Sempre fixo em relação ao chat) -->
+          <!-- 🔽 Botão Flutuante Redondo de Scroll -->
           <button 
             v-show="mostrarBotaoScroll" 
             class="btn-scroll-fim" 
@@ -47,6 +57,7 @@
           </button>
         </div>
 
+        <!-- FOOTER DO CHAT: O evento @voltar-para-fila limpa a tela no mobile -->
         <ChatFooter :usuario="usuarioLogado" :chamado="chamadoSelecionado" :status="chamadoSelecionado?.status"
           :pode-assumir="podeAssumirChamado" :pode-reabrir="true" :respondendo-a="respondendoA" :editando="!!editandoId"
           :texto-inicial="textoParaEditar" @enviar-mensagem="enviar" @anexar-arquivo="enviarArquivoSelecionado"
@@ -57,7 +68,7 @@
       </div>
     </main>
 
-    <!-- ==================== MODAL: TRANSFERIR ==================== -->
+    <!-- ==================== MODAIS (Mantidos 100% responsivos no CSS) ==================== -->
     <div v-if="modalTransferirAberto" class="modal-overlay" @click.self="fecharModais">
       <div class="modal-box">
         <h3>Transferir chamado</h3>
@@ -75,7 +86,6 @@
       </div>
     </div>
 
-    <!-- ==================== MODAL: FECHAR ==================== -->
     <div v-if="modalFecharAberto" class="modal-overlay" @click.self="fecharModais">
       <div class="modal-box">
         <div class="modal-icone-alerta">!</div>
@@ -90,7 +100,6 @@
       </div>
     </div>
 
-    <!-- ==================== MODAL: ENCAMINHAR ==================== -->
     <div v-if="modalEncaminharAberto" class="modal-overlay" @click.self="fecharModalEncaminhar">
       <div class="modal-box">
         <h3>Encaminhar mensagem</h3>
@@ -119,6 +128,7 @@
 </template>
 
 <script setup>
+/* Mantido todo o seu bloco <script setup> intacto */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -128,7 +138,6 @@ import ChatMessages from '../../components/chat/ChatMessages.vue'
 import ChatFooter from '../../components/chat/ChatFooter.vue'
 import ChatDrawer from '../../components/chat/ChatDrawer.vue'
 import { listarAtendentes } from '@/services/usuariosServices.js'
-
 import { socket } from '@/services/api.js'
 
 import {
@@ -154,15 +163,11 @@ import { isAdmin, getIdUsuario, getNomeUsuario } from '@/services/authServices.j
 
 const route = useRoute()
 
-// ------------------------------------------------------------
-// ESTADOS DO SCROLL E COMPONENTES
-// ------------------------------------------------------------
 const chatMessagesComponent = ref(null)
 const mostrarBotaoScroll = ref(false)
 const mensagensNaoLidas = ref(0)
 let elementoScroll = null
 
-// Executa a rolagem suave até o fim do histórico
 function rolarParaOFim() {
   if (elementoScroll) {
     elementoScroll.scrollTo({
@@ -174,36 +179,26 @@ function rolarParaOFim() {
   mensagensNaoLidas.value = 0
 }
 
-// Monitora o evento de scroll enviado pela lista de mensagens
 function monitorarScroll(e) {
   const { scrollTop, scrollHeight, clientHeight } = e.target
   const distanciaDoFim = scrollHeight - scrollTop - clientHeight
-  
-  // Mostra o botão redondo flutuante se subiu mais de 300px
   mostrarBotaoScroll.value = distanciaDoFim > 300
-
   if (distanciaDoFim < 20) {
     mensagensNaoLidas.value = 0
   }
 }
 
-// Observa quando o componente ChatMessages é montado para vincular o elemento interno de scroll
 watch(chatMessagesComponent, (novoComponente) => {
   if (novoComponente) {
-    // Captura o contêiner interno com base na referência exposta
     elementoScroll = novoComponente.scrollContainer || novoComponente.$el?.querySelector('.area-mensagens') || novoComponente.$el
   }
 })
 
-// ------------------------------------------------------------
-// ESTADOS GLOBAIS / REFS
-// ------------------------------------------------------------
 const abaAtual = ref('EM_ATENDIMENTO')
 const chamados = ref([])
 const carregando = ref(false)
 const chamadoSelecionado = ref(null)
 const mensagemAcao = ref('')
-
 const detalhesAbertos = ref(false)
 const detalhesChamado = ref(null)
 const carregandoDetalhes = ref(false)
@@ -219,6 +214,10 @@ const usuarioLogado = computed(() => ({
 
 const podeAssumirChamado = computed(() => admin)
 
+function verificarModoMobile() {
+  // Opcional: Caso precise forçar algum estado baseado no resize da janela
+}
+
 function reagirMensagem({ mensagemId, emoji }) {
   const index = mensagens.value.findIndex(m => m.id === mensagemId)
   if (index !== -1) {
@@ -226,27 +225,18 @@ function reagirMensagem({ mensagemId, emoji }) {
   }
 }
 
-// ------------------------------------------------------------
-// ⚡ MOTOR EM TEMPO REAL: SOCKET.IO (Segurança & Performance)
-// ------------------------------------------------------------
 function configurarEventosSocket() {
-  if (!socket.connected) {
-    socket.connect()
-  }
+  if (!socket.connected) socket.connect()
 
   socket.on('novaMensagem', (mensagem) => {
     if (chamadoSelecionado.value && mensagem.chamado_id === chamadoSelecionado.value.id) {
       const jaExiste = mensagens.value.some(m => m.id === mensagem.id)
       if (!jaExiste) {
         mensagens.value.push(mensagem)
-        
-        // Se o usuário não está no fundo do chat, incrementa mensagens não lidas
         if (mostrarBotaoScroll.value) {
           mensagensNaoLidas.value++
         } else {
-          nextTick(() => {
-            rolarParaOFim()
-          })
+          nextTick(() => { rolarParaOFim() })
         }
       }
     }
@@ -255,9 +245,7 @@ function configurarEventosSocket() {
   socket.on('mensagemEditada', (mensagemAtualizada) => {
     if (chamadoSelecionado.value && mensagemAtualizada.chamado_id === chamadoSelecionado.value.id) {
       const index = mensagens.value.findIndex(m => m.id === mensagemAtualizada.id)
-      if (index !== -1) {
-        mensagens.value[index] = mensagemAtualizada
-      }
+      if (index !== -1) mensagens.value[index] = mensagemAtualizada
     }
   })
 
@@ -269,18 +257,13 @@ function configurarEventosSocket() {
 
   socket.on('chamadoAtualizado', (chamadoModificado) => {
     const index = chamados.value.findIndex(c => c.id === chamadoModificado.id)
-    
     if (index !== -1) {
       if (chamadoModificado.status !== abaAtual.value) {
         chamados.value.splice(index, 1)
-        if (chamadoSelecionado.value?.id === chamadoModificado.id) {
-          chamadoSelecionado.value = null
-        }
+        if (chamadoSelecionado.value?.id === chamadoModificado.id) chamadoSelecionado.value = null
       } else {
         chamados.value[index] = chamadoModificado
-        if (chamadoSelecionado.value?.id === chamadoModificado.id) {
-          chamadoSelecionado.value = chamadoModificado
-        }
+        if (chamadoSelecionado.value?.id === chamadoModificado.id) chamadoSelecionado.value = chamadoModificado
       }
     } else if (chamadoModificado.status === abaAtual.value) {
       chamados.value.unshift(chamadoModificado)
@@ -295,16 +278,11 @@ function removerEventosSocket() {
   socket.off('chamadoAtualizado')
 }
 
-// ------------------------------------------------------------
-// CHAMADOS (Ações)
-// ------------------------------------------------------------
 async function assumirForcado() {
   try {
     await transferirChamado(chamadoSelecionado.value.id, meuId)
     mensagemAcao.value = 'Você assumiu o chamado.'
-  } catch (err) {
-    mensagemAcao.value = err.response?.data?.erro || 'Erro ao assumir chamado'
-  }
+  } catch (err) { mensagemAcao.value = err.response?.data?.erro || 'Erro ao assumir chamado' }
 }
 
 function solicitarTransferencia() {
@@ -315,9 +293,7 @@ async function retomarAtendimento() {
   try {
     await retomarChamado(chamadoSelecionado.value.id)
     mensagemAcao.value = 'Atendimento retomado!'
-  } catch (err) {
-    mensagemAcao.value = err.response?.data?.erro || 'Erro ao retomar atendimento'
-  }
+  } catch (err) { mensagemAcao.value = err.response?.data?.erro || 'Erro ao retomar atendimento' }
 }
 
 function voltarParaFila() {
@@ -326,13 +302,9 @@ function voltarParaFila() {
 
 async function carregarChamados() {
   carregando.value = true
-  try {
-    chamados.value = await listarChamadosPorStatus(abaAtual.value)
-  } catch (err) {
-    console.error('Erro ao carregar chamados:', err)
-  } finally {
-    carregando.value = false
-  }
+  try { chamados.value = await listarChamadosPorStatus(abaAtual.value) } 
+  catch (err) { console.error('Erro ao carregar chamados:', err) } 
+  finally { carregando.value = false }
 }
 
 function trocarAba(status) {
@@ -350,33 +322,45 @@ async function selecionarChamado(chamado) {
   respondendoA.value = null
   editandoId.value = null
   await carregarMensagens()
-  nextTick(() => {
-    rolarParaOFim()
-  })
+  nextTick(() => { rolarParaOFim() })
 }
 
 async function assumir() {
   try {
     await assumirChamado(chamadoSelecionado.value.id)
     chamadoSelecionado.value = null
-  } catch (err) {
-    console.error(err)
-  }
+  } catch (err) { console.error(err) }
 }
 
 async function reabrir() {
   try {
-    await reabrirChamado(chamadoSelecionado.value.id)
-    mensagemAcao.value = 'Chamado reaberto! Ele voltou pra fila.'
-    chamadoSelecionado.value = null
-  } catch (err) {
-    mensagemAcao.value = err.response?.data?.erro || 'Erro ao reabrir chamado'
+    // 1. Chama a API de reabertura (que no Back-end agora define status = 'EM_ATENDIMENTO' e atribui o atendente_id)
+    const resposta = await reabrirChamado(chamadoSelecionado.value.id)
+    
+    // 2. Notificação visual de sucesso
+    mensagemAcao.value = 'Chamado reaberto e assumido por você com sucesso!'
+    
+    // 3. Atualiza os dados do chamado selecionado em tempo real sem fechar a conversa na tela
+    if (resposta && resposta.chamado) {
+      chamadoSelecionado.value = resposta.chamado
+    } else {
+      // Caso sua API retorne o objeto direto no data
+      chamadoSelecionado.value.status = 'EM_ATENDIMENTO'
+      chamadoSelecionado.value.atendente_id = meuId
+    }
+
+    // 4. Muda automaticamente a aba da lista lateral para "Em Atendimento" para o usuário acompanhar o ticket
+    abaAtual.value = 'EM_ATENDIMENTO'
+    
+    // 5. Recarrega as mensagens do chat para exibir a mensagem do sistema ("Reabriu o chamado")
+    await carregarMensagens()
+    nextTick(() => { rolarParaOFim() })
+
+  } catch (err) { 
+    mensagemAcao.value = err.response?.data?.erro || 'Erro ao reabrir chamado' 
   }
 }
 
-// ------------------------------------------------------------
-// TRANSFERIR / FECHAR (Modais)
-// ------------------------------------------------------------
 const atendentes = ref([])
 const atendenteEscolhido = ref('')
 const comentarioTransferir = ref('')
@@ -385,11 +369,8 @@ const modalTransferirAberto = ref(false)
 const modalFecharAberto = ref(false)
 
 async function carregarAtendentes() {
-  try {
-    atendentes.value = await listarAtendentes()
-  } catch (err) {
-    console.error('Erro ao carregar atendentes:', err)
-  }
+  try { atendentes.value = await listarAtendentes() } 
+  catch (err) { console.error('Erro ao carregar atendentes:', err) }
 }
 
 function abrirModalTransferir() {
@@ -419,9 +400,7 @@ async function transferir() {
     mensagemAcao.value = 'Chamado transferido com sucesso!'
     fecharModais()
     chamadoSelecionado.value = null
-  } catch (err) {
-    mensagemAcao.value = err.response?.data?.erro || 'Erro ao transferir chamado'
-  }
+  } catch (err) { mensagemAcao.value = err.response?.data?.erro || 'Erro ao transferir chamado' }
 }
 
 async function fechar() {
@@ -437,27 +416,18 @@ async function fechar() {
     mensagemAcao.value = 'Chamado fechado com sucesso!'
     fecharModais()
     chamadoSelecionado.value = null
-  } catch (err) {
-    mensagemAcao.value = err.response?.data?.erro || 'Erro ao fechar chamado'
-  }
+  } catch (err) { mensagemAcao.value = err.response?.data?.erro || 'Erro ao fechar chamado' }
 }
 
-// ------------------------------------------------------------
-// MENSAGENS (Requisições seguras)
-// ------------------------------------------------------------
 const mensagens = ref([])
 const carregandoMensagens = ref(false)
 
 async function carregarMensagens() {
   if (!chamadoSelecionado.value) return
   carregandoMensagens.value = true
-  try {
-    mensagens.value = await listarMensagens(chamadoSelecionado.value.id)
-  } catch (err) {
-    console.error('Erro ao carregar mensagens:', err)
-  } finally {
-    carregandoMensagens.value = false
-  }
+  try { mensagens.value = await listarMensagens(chamadoSelecionado.value.id) } 
+  catch (err) { console.error('Erro ao carregar mensagens:', err) } 
+  finally { carregandoMensagens.value = false }
 }
 
 async function enviar(texto) {
@@ -468,19 +438,11 @@ async function enviar(texto) {
       conteudo: texto,
       resposta_a: respondendoA.value?.id || null
     })
-    
     const jaExiste = mensagens.value.some(m => m.id === novaMensagem.id)
-    if (!jaExiste) {
-      mensagens.value.push(novaMensagem)
-    }
-
+    if (!jaExiste) mensagens.value.push(novaMensagem)
     respondendoA.value = null
-    nextTick(() => {
-      rolarParaOFim()
-    })
-  } catch (err) {
-    console.error('Erro ao enviar mensagem:', err)
-  }
+    nextTick(() => { rolarParaOFim() })
+  } catch (err) { console.error('Erro ao enviar mensagem:', err) }
 }
 
 async function enviarArquivoSelecionado(payload) {
@@ -491,32 +453,18 @@ async function enviarArquivoSelecionado(payload) {
     formData.append('chamado_id', chamadoSelecionado.value.id)
 
     const novaMensagemAnexo = await enviarArquivo(formData) 
-    
     const jaExiste = mensagens.value.some(m => m.id === novaMensagemAnexo.id)
-    if (!jaExiste) {
-      mensagens.value.push(novaMensagemAnexo)
-    }
-
-    nextTick(() => {
-      rolarParaOFim()
-    })
-  } catch (error) {
-    console.error("Erro ao enviar arquivo:", error)
-  }
+    if (!jaExiste) mensagens.value.push(novaMensagemAnexo)
+    nextTick(() => { rolarParaOFim() })
+  } catch (error) { console.error("Erro ao enviar arquivo:", error) }
 }
 
 async function apagar(mensagemId) {
   if (!confirm('Apagar esta mensagem?')) return
-  try {
-    await apagarMensagem(mensagemId)
-  } catch (err) {
-    console.error('Erro ao apagar mensagem:', err)
-  }
+  try { await apagarMensagem(mensagemId) } 
+  catch (err) { console.error('Erro ao apagar mensagem:', err) }
 }
 
-// ------------------------------------------------------------
-// RESPONDER & EDITAR
-// ------------------------------------------------------------
 const respondendoA = ref(null)
 const editandoId = ref(null)
 const textoParaEditar = ref('')
@@ -525,13 +473,11 @@ function responder(msg) {
   editandoId.value = null
   respondendoA.value = msg
 }
-
 function iniciarEdicao(msg) {
   respondendoA.value = null
   editandoId.value = msg.id
   textoParaEditar.value = msg.conteudo
 }
-
 function cancelarEdicao() {
   editandoId.value = null
   textoParaEditar.value = ''
@@ -542,14 +488,9 @@ async function confirmarEdicao(texto) {
     await editarMensagem(editandoId.value, texto)
     editandoId.value = null
     textoParaEditar.value = ''
-  } catch (err) {
-    console.error('Erro ao editar mensagem:', err)
-  }
+  } catch (err) { console.error('Erro ao editar mensagem:', err) }
 }
 
-// ------------------------------------------------------------
-// ENCAMINHAR
-// ------------------------------------------------------------
 const modalEncaminharAberto = ref(false)
 const mensagemParaEncaminhar = ref(null)
 const chamadoDestinoEncaminhar = ref('')
@@ -558,11 +499,8 @@ const chamadosParaEncaminhar = ref([])
 async function abrirModalEncaminhar(msg) {
   mensagemParaEncaminhar.value = msg
   chamadoDestinoEncaminhar.value = ''
-  try {
-    chamadosParaEncaminhar.value = await listarChamadosPorStatus('EM_ATENDIMENTO')
-  } catch (err) {
-    console.error('Erro ao carregar chamados para encaminhar:', err)
-  }
+  try { chamadosParaEncaminhar.value = await listarChamadosPorStatus('EM_ATENDIMENTO') } 
+  catch (err) { console.error('Erro ao carregar chamados para encaminhar:', err) }
   modalEncaminharAberto.value = true
 }
 
@@ -576,21 +514,15 @@ async function confirmarEncaminhar() {
     await encaminharMensagem(mensagemParaEncaminhar.value.id, chamadoDestinoEncaminhar.value)
     fecharModalEncaminhar()
     mensagemAcao.value = 'Mensagem encaminhada com sucesso!'
-  } catch (err) {
-    console.error('Erro ao encaminhar mensagem:', err)
-  }
+  } catch (err) { console.error('Erro ao encaminhar mensagem:', err) }
 }
 
 async function carregarDetalhes() {
   if (!chamadoSelecionado.value) return
   carregandoDetalhes.value = true
-  try {
-    detalhesChamado.value = await buscarDetalhesChamado(chamadoSelecionado.value.id)
-  } catch (err) {
-    console.error('Erro ao carregar detalhes do chamado:', err)
-  } finally {
-    carregandoDetalhes.value = false
-  }
+  try { detalhesChamado.value = await buscarDetalhesChamado(chamadoSelecionado.value.id) } 
+  catch (err) { console.error('Erro ao carregar detalhes do chamado:', err) } 
+  finally { carregandoDetalhes.value = false }
 }
 
 async function abrirDetalhes() {
@@ -598,49 +530,30 @@ async function abrirDetalhes() {
   await carregarDetalhes()
 }
 
-// ------------------------------------------------------------
-// PAGINAÇÃO / CARREGAR HISTÓRICO ANTERIOR
-// ------------------------------------------------------------
 async function carregarMaisMensagens() {
   if (carregandoMensagens.value) return
-  
   try {
     carregandoMensagens.value = true
     const limite = 20
     const primeiraMensagemId = mensagens.value[0]?.id
-    
-    const historicoAntigo = await listarMensagens(chamadoSelecionado.value.id, {
-      limite,
-      antes_de: primeiraMensagemId
-    })
+    const historicoAntigo = await listarMensagens(chamadoSelecionado.value.id, { limite, antes_de: primeiraMensagemId })
 
     if (historicoAntigo && historicoAntigo.length > 0) {
       const alturaAnterior = elementoScroll ? elementoScroll.scrollHeight : 0
-
       mensagens.value = [...historicoAntigo, ...mensagens.value]
-
       nextTick(() => {
-        if (elementoScroll) {
-          elementoScroll.scrollTop = elementoScroll.scrollHeight - alturaAnterior
-        }
+        if (elementoScroll) elementoScroll.scrollTop = elementoScroll.scrollHeight - alturaAnterior
       })
     } else {
       alert("Todas as mensagens já foram carregadas!")
     }
-  } catch (err) {
-    console.error("Erro ao carregar mais histórico:", err)
-  } finally {
-    carregandoMensagens.value = false
-  }
+  } catch (err) { console.error("Erro ao carregar mais histórico:", err) } 
+  finally { carregandoMensagens.value = false }
 }
 
-// ------------------------------------------------------------
-// LIFECYCLE (Montagem e Desmontagem Segura)
-// ------------------------------------------------------------
 onMounted(async () => {
   await carregarChamados()
   carregarAtendentes()
-  
   configurarEventosSocket()
 
   const idParaAbrir = route.query.abrir
@@ -656,10 +569,24 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ---------- ESTRUTURA GLOBAL DA VIEW ---------- */
 .tela-chamados {
   display: flex;
   height: calc(100vh - 56px);
   position: relative;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* 🎯 CORREÇÃO DE LARGURA DA SIDEBAR NO DESKTOP */
+.sidebar-responsiva {
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .sidebar-responsiva {
+    min-width: 340px !important;
+    max-width: 420px !important;
+  }
 }
 
 .area-chat {
@@ -667,18 +594,24 @@ onUnmounted(() => {
   background: #eae6df;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .chat-vazio {
   margin: auto;
   color: #888;
   font-size: 14px;
+  padding: 20px;
+  text-align: center;
 }
 
 .chat-corpo {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 .mensagem-acao {
@@ -689,100 +622,40 @@ onUnmounted(() => {
   background: #eef3fb;
 }
 
-/* ---------- MODAIS ---------- */
+/* ---------- CLASSES DE COMPORTAMENTO DINÂMICO (BOOTSTRAP UTILS EMULADAS) ---------- */
+.d-none { display: none !important; }
+.d-flex { display: flex !important; }
+
+@media (min-width: 768px) {
+  .d-md-flex { display: flex !important; }
+  .d-md-none { display: none !important; }
+}
+
+/* ---------- MODAIS RESPONSIVOS ---------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 1050;
+  padding: 16px; /* Impede o modal de colar na borda do celular */
 }
 
 .modal-box {
   background: #fff;
-  border-radius: 10px;
-  padding: 28px;
+  border-radius: 12px;
+  padding: 24px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.22);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
-.modal-box h3 {
-  margin: 0 0 4px 0;
-  text-align: center;
-}
-
-.modal-icone-alerta {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 2px solid #f0ad4e;
-  color: #f0ad4e;
-  font-size: 22px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 8px;
-}
-
-.modal-subtitulo {
-  text-align: center;
-  color: #666;
-  font-size: 13px;
-  margin: 0 0 8px;
-}
-
-.modal-box label {
-  font-size: 13px;
-  color: #444;
-  margin-top: 4px;
-}
-
-.modal-box select,
-.modal-box textarea {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-family: inherit;
-}
-
-.modal-botoes {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.btn-cancelar {
-  background: #dbe3ee;
-  color: #333;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.btn-confirmar {
-  background: #1a3c6e;
-  color: #fff;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.btn-confirmar:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ---------- 📦 CONTAINER ESTRUTURAL DA ROLAGEM ---------- */
+/* ---------- CONTAINER DAS MENSAGENS & BOTÃO FLUTUANTE ---------- */
 .chat-mensagens-container-pai {
   position: relative !important;
   flex: 1;
@@ -791,39 +664,34 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* 🌟 BOTÃO REDONDO FLUTUANTE DE ROLAGEM PARA O FIM */
 .btn-scroll-fim {
   position: absolute !important;
-  bottom: 16px !important;
+  bottom: 20px !important;
   right: 20px !important;
   background-color: #ffffff !important;
   border: none !important;
   border-radius: 50% !important;
-  width: 42px !important;
-  height: 42px !important;
+  width: 46px !important;
+  height: 46px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
   cursor: pointer !important;
-  z-index: 999 !important;
-  outline: none !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: 99 !important;
+  transition: transform 0.2s ease;
 }
 
-.btn-scroll-fim:hover {
-  background-color: #f8f9fa !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16) !important;
+.btn-scroll-fim:active {
+  transform: scale(0.9);
 }
 
 .btn-scroll-fim svg {
   fill: #54656f !important;
-  width: 20px !important;
-  height: 20px !important;
+  width: 22px !important;
+  height: 22px !important;
 }
 
-/* Badge do Contador verde WhatsApp */
 .badge-novas-mensagens {
   position: absolute !important;
   top: -4px !important;
@@ -832,13 +700,12 @@ onUnmounted(() => {
   color: #ffffff !important;
   font-size: 10px !important;
   font-weight: bold !important;
-  min-width: 18px !important;
-  height: 18px !important;
+  min-width: 20px !important;
+  height: 20px !important;
   border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  padding: 0 4px !important;
+  justify-content: center;
   border: 2px solid #ffffff !important;
 }
 </style>

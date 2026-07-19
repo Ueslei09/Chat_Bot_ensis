@@ -1,9 +1,13 @@
 <template>
+  <!-- login-page: ocupa a tela inteira (100vh) e usa a imagem de fundo -->
   <div class="login-page" :style="{ backgroundImage: `url(${bgImage})` }">
+
+    <!-- Camada escura por cima da imagem, só pra dar contraste com o texto -->
     <div class="overlay"></div>
 
-    <div class="login-box">
-      <h3 class="mb-3 text-center text-dark">Nova Senha</h3>
+    <!-- Cartão do formulário, flutuando centralizado por cima da imagem -->
+    <div class="login-box animate-fade-in">
+      <h3 class="mb-2 text-center text-dark fw-bold">Nova Senha</h3>
       <p class="text-muted text-center mb-4" style="font-size: 13px;">
         Digite e confirme a sua nova senha de acesso.
       </p>
@@ -34,14 +38,14 @@
         <p v-if="mensagemErro" class="erro">{{ mensagemErro }}</p>
         <p v-if="mensagemSucesso" class="sucesso">{{ mensagemSucesso }}</p>
 
-        <button type="submit" class="btn btn-primary w-100" :disabled="carregando">
+        <button type="submit" class="btn btn-primary w-100 py-2.5" :disabled="carregando">
           {{ carregando ? 'Alterando...' : 'Redefinir Senha' }}
         </button>
       </form>
 
       <div v-else>
-        <p class="erro text-center mb-3">Link de recuperação inválido ou expirado.</p>
-        <router-link to="/esqueci-senha" class="btn btn-secondary w-100">
+        <p class="erro text-center mb-4 font-medium">Link de recuperação inválido ou expirado.</p>
+        <router-link to="/esqueci-senha" class="btn btn-secondary w-100 py-2.5">
           Solicitar novo link
         </router-link>
       </div>
@@ -50,6 +54,7 @@
 </template>
 
 <script setup>
+/* Mantido todo o seu bloco <script setup> original perfeitamente intacto */
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
@@ -103,6 +108,7 @@ async function alterarSenha() {
 </script>
 
 <style scoped>
+/* Ocupa a tela inteira e cobre com a imagem de fundo */
 .login-page {
   position: relative;
   min-height: 100vh;
@@ -112,34 +118,100 @@ async function alterarSenha() {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px; /* 🎯 Evita que o card cole nas bordas da tela do celular */
 }
 
+/* Camada escura semi-transparente por cima da imagem (contraste) */
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5); /* Sutil aumento para melhorar legibilidade */
 }
 
+/* Cartão do formulário, flutuando acima da imagem e do overlay */
 .login-box {
   position: relative;
   z-index: 1;
   background: #ffffff;
-  padding: 32px;
+  padding: 24px; /* Reduzido no mobile para economizar espaço de tela */
   border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
   max-width: 380px;
+  transition: all 0.3s ease;
+}
+
+/* Em telas maiores (Desktop), ganha mais respiro interno */
+@media (min-width: 576px) {
+  .login-box {
+    padding: 36px;
+  }
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-control {
+  padding: 11px 14px;
+  font-size: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+.form-control:focus {
+  border-color: #1a3c6e;
+  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.15);
+}
+
+.btn-primary {
+  background: #1a3c6e;
+  border: none;
+  padding: 11px;
+  font-weight: bold;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.btn-primary:hover {
+  background: #11294a;
+}
+.btn-primary:disabled {
+  background: #94a3b8;
+}
+
+.btn-secondary {
+  padding: 11px;
+  font-weight: bold;
+  font-size: 14px;
+  border-radius: 8px;
 }
 
 .erro {
-  color: #c0392b;
+  color: #dc2626;
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
 }
 
 .sucesso {
-  color: #27ae60;
+  color: #16a34a;
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+/* Animação suave de entrada */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

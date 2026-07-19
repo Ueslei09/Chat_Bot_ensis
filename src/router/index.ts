@@ -16,6 +16,7 @@ const EsqueciSenhaView = () => import('@/views/ForgotPasswordView.vue')
 const RedefinirSenhaView = () => import('@/views/ResetPasswordView.vue')
 const GerenciarEmpresasView = () => import('@/views/master/GerenciaEmpresas.vue')
 const MasterLoginView = () => import('@/views/master/MasterLoginView.vue')
+import DashboardView from '@/views/DashboardView.vue' // Ajuste o caminho se seu arquivo tiver outro nome
 
 const router = createRouter({
   history: createWebHistory(),
@@ -63,6 +64,11 @@ const router = createRouter({
       component: DefaultLayout,
       meta: { requerLogin: true }, // Blindagem global dos filhos
       children: [
+        {
+        path: 'dashboard', // 👈 Rota /app/dashboard
+        name: 'Dashboard',
+        component: DashboardView
+      },
         {
           path: 'chamados',
           name: 'chamados',

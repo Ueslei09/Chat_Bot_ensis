@@ -1,6 +1,17 @@
 <template>
   <div class="topo" @click="$emit('abrir-detalhes')">
     <div class="titulo">
+      
+      <!-- 🔙 BOTÃO RETORNO MOBILE: Aparece apenas em telas pequenas (< 768px) -->
+      <button 
+        type="button" 
+        class="btn-voltar-mobile" 
+        title="Voltar para a lista"
+        @click.stop="$emit('voltar')"
+      >
+        <i class="bi bi-arrow-left"></i>
+      </button>
+
       <!-- Avatar dinâmico (Letra ou Ícone de Grupo) -->
       <span class="avatar-contato" :class="{ grupo: chamado.eh_grupo }">
         <i v-if="chamado.eh_grupo" class="bi bi-people-fill"></i>
@@ -72,15 +83,14 @@ const props = defineProps({
   abaAtual: { type: String, required: true }
 })
 
-defineEmits(['assumir', 'abrir-transferir', 'abrir-fechar', 'reabrir', 'abrir-detalhes'])
+// 🎯 Incluído o 'voltar' na lista de emissões de eventos do cabeçalho
+defineEmits(['assumir', 'abrir-transferir', 'abrir-fechar', 'reabrir', 'abrir-detalhes', 'voltar'])
 
 const inicial = computed(() => {
   const nome = props.chamado.cliente_nome
   return nome ? nome.charAt(0).toUpperCase() : '?'
 })
 
-// ⚡ FORMATADOR DE STATUS (UX):
-// Traduz os termos de banco para termos amigáveis que o operador entende de primeira
 function formatarStatus(status) {
   if (!status) return ''
   const mapeamento = {
@@ -113,6 +123,30 @@ function formatarStatus(status) {
   gap: 12px;
 }
 
+/* 🌟 ESTILIZAÇÃO DO BOTÃO VOLTAR EXCLUSIVO PARA SMARTPHONES */
+.btn-voltar-mobile {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px 4px 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.btn-voltar-mobile:hover {
+  color: #1e293b;
+}
+
+/* Oculta o botão de voltar por padrão em telas grandes (Desktop) */
+@media (min-width: 768px) {
+  .btn-voltar-mobile {
+    display: none !important;
+  }
+}
+
 .avatar-contato {
   width: 40px;
   height: 40px;
@@ -140,9 +174,18 @@ function formatarStatus(status) {
 .info-contato strong {
   font-size: 15px;
   color: #1e293b;
+  /* Garante que nomes gigantes no mobile não quebrem a linha do cabeçalho */
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-truncate: ellipsis;
+}
+@media (min-width: 576px) {
+  .info-contato strong {
+    max-width: 100%;
+  }
 }
 
-/* Status Badges com cores semânticas amigáveis */
 .status-badge {
   font-size: 11px;
   font-weight: 500;
@@ -186,7 +229,6 @@ function formatarStatus(status) {
   color: #1e293b;
 }
 
-/* Cores especiais para ações perigosas e de sucesso */
 .icone-btn.btn-sucesso {
   color: #22c55e;
 }

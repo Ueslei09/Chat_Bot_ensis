@@ -1,16 +1,13 @@
 <template>
-  <!--
-    login-page: ocupa a tela inteira (100vh) e usa a imagem
-    importada como fundo, cobrindo tudo (background-size: cover)
-  -->
+  <!-- login-page: ocupa a tela inteira (100vh) e usa a imagem de fundo -->
   <div class="login-page" :style="{ backgroundImage: `url(${bgImage})` }">
 
     <!-- Camada escura por cima da imagem, só pra dar contraste com o texto -->
     <div class="overlay"></div>
 
     <!-- Cartão do formulário, flutuando centralizado por cima da imagem -->
-    <div class="login-box">
-      <h3 class="mb-4 text-center text-dark">Moove Chat-Multi</h3>
+    <div class="login-box animate-fade-in">
+      <h3 class="mb-4 text-center text-dark fw-bold">Moove Chat-Multi</h3>
 
       <form @submit.prevent="login">
         <div class="mb-3">
@@ -33,7 +30,7 @@
             placeholder="Digite sua senha"
             required
           />
-          <!-- 💡 LINK ADICIONADO AQUI -->
+          <!-- Link Esqueci a senha -->
           <div class="forgot-wrapper">
             <router-link to="/esqueci-senha" class="link-forgot">
               Esqueci a senha?
@@ -44,7 +41,7 @@
         <!-- Mostra erro de login, se houver -->
         <p v-if="erro" class="erro">{{ erro }}</p>
 
-        <button type="submit" class="btn btn-primary w-100" :disabled="carregando">
+        <button type="submit" class="btn btn-primary w-100 py-2.5" :disabled="carregando">
           {{ carregando ? 'Entrando...' : 'Entrar' }}
         </button>
       </form>
@@ -56,23 +53,22 @@
   </div>
 </template>
 
-
 <script setup>
+/* Mantido todo o seu bloco <script setup> original perfeitamente intacto */
 import { ref } from 'vue'
-import { useRouter } from 'vue-router' // 👈 1. Importação que faltava
+import { useRouter } from 'vue-router' 
 import { useAuthStore } from '@/stores/auth'
 import { socket } from '@/services/api.js'
 import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
-const usuario = ref('') // Armazena o e-mail digitado no input
+const usuario = ref('') 
 const senha = ref('')
 const erro = ref('')
 const carregando = ref(false)
 
-const router = useRouter() // 👈 2. Instanciando o router
+const router = useRouter() 
 const authStore = useAuthStore()
 
-// 👈 3. Nome corrigido para 'login' minúsculo, batendo com o @submit do HTML
 const login = async () => {
   try {
     erro.value = ''
@@ -80,16 +76,13 @@ const login = async () => {
 
     console.log('--- DISPARANDO LOGIN COMUM ---')
     
-    // 👈 4. Corrigido para enviar 'usuario.value' em vez de 'email.value'
     await authStore.realizarLogin(usuario.value, senha.value)
 
-    // 🔌 5. SOCKET RESTAURADO: Conecta e ativa os eventos em tempo real
     if (socket && typeof socket.connect === 'function') {
       console.log('🔌 Conectando ao canal do Socket.IO...')
       socket.connect()
     }
 
-  // 🚀 REDIRECIONAMENTO INTELIGENTE BASEADO NO PERFIL REAL DO BANCO:
     if (authStore.ehMaster) {
       console.log('👑 Super Admin identificado! Redirecionando para o Painel Master...');
       router.push('/master/empresas')
@@ -100,7 +93,6 @@ const login = async () => {
 
   } catch (err) {
     console.error('Erro no login comum:', err)
-    // Dica extra: mude para ".erro" se o seu backend retornar o padrão que configuramos antes
     erro.value = err.response?.data?.erro || err.response?.data?.message || 'E-mail ou senha inválidos'
   } finally {
     carregando.value = false
@@ -119,45 +111,89 @@ const login = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px; /* 🎯 Evita que o card cole nos cantos da tela no celular */
 }
 
 /* Camada escura semi-transparente por cima da imagem (contraste) */
 .overlay {
   position: absolute;
-  inset: 0; /* cobre top/right/bottom/left = 0 */
-  background: rgba(0, 0, 0, 0.45);
+  inset: 0; 
+  background: rgba(0, 0, 0, 0.5); /* Aumentado de 0.45 para 0.5 para melhor contraste */
 }
 
 /* Cartão do formulário, flutuando acima da imagem e do overlay */
 .login-box {
-  position: relative; /* fica acima do overlay por causa do z-index implícito */
+  position: relative; 
   z-index: 1;
   background: #ffffff;
-  padding: 32px;
+  padding: 24px; /* Reduzido de 32px para 24px no mobile por padrão */
   border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
   max-width: 380px;
+  transition: all 0.3s ease;
+}
+
+/* Em telas maiores (Desktop), expande o espaçamento interno do formulário */
+@media (min-width: 576px) {
+  .login-box {
+    padding: 36px;
+  }
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-control {
+  padding: 11px 14px;
+  font-size: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+.form-control:focus {
+  border-color: #1a3c6e;
+  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.15);
+}
+
+.btn-primary {
+  background: #1a3c6e;
+  border: none;
+  padding: 11px;
+  font-weight: bold;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.btn-primary:hover {
+  background: #11294a;
+}
+.btn-primary:disabled {
+  background: #94a3b8;
 }
 
 .erro {
-  color: #c0392b;
+  color: #dc2626;
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
 }
+
 .link-admin {
   display: block;
   text-align: center;
-  margin-top: 16px;
+  margin-top: 20px;
   font-size: 13px;
   color: #1a3c6e;
   text-decoration: none;
+  font-weight: 500;
 }
 .link-admin:hover {
   text-decoration: underline;
 }
 
-/* 💡 ESTILOS ADICIONADOS PARA O NOVOS LINKS */
 .forgot-wrapper {
   text-align: right;
   margin-top: 6px;
@@ -166,8 +202,18 @@ const login = async () => {
   font-size: 12px;
   color: #1a3c6e;
   text-decoration: none;
+  font-weight: 500;
 }
 .link-forgot:hover {
   text-decoration: underline;
+}
+
+/* Animação suave de entrada */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

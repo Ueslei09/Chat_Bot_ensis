@@ -1,29 +1,31 @@
 <template>
-  <div class="contatos">
+  <div class="contatos animate-fade-in">
 
     <div class="cabecalho">
       <h2>Contatos</h2>
-      <button class="btn-voltar" @click="voltarParaChat">← Voltar para o chat</button>
+      <button class="btn-voltar" @click="voltarParaChat">
+        <span class="seta">←</span> <span class="texto-btn">Voltar ao chat</span>
+      </button>
     </div>
 
     <!-- ==================== FORMULÁRIO: NOVO CONTATO ==================== -->
     <form class="form-contato" @submit.prevent="salvarContato">
-      <div class="campo">
+      <div class="campo campo-flex">
         <label>Nome</label>
         <input v-model="form.nome" type="text" required />
       </div>
 
-      <div class="campo">
+      <div class="campo campo-flex">
         <label>Número</label>
         <input  
           v-model="form.telefone"
           type="text"
-          :placeholder="form.eh_grupo ? 'ID do grupo (ex: 12036xxxx@g.us)' : '5511999999999'"
+          :placeholder="form.eh_grupo ? 'ID do grupo' : '5511999999999'"
           required 
         />
       </div>
 
-      <div class="campo">
+      <div class="campo campo-flex-pequeno">
         <label>Conexão</label>
         <select v-model="form.conexao" required>
           <option value="whatsapp">WhatsApp</option>
@@ -32,20 +34,22 @@
         </select>
       </div>
 
-      <div class="campo campo-checkbox">
-        <label>
+      <div class="campo campo-checkbox align-self-center">
+        <label class="label-checkbox-container">
           <input type="checkbox" v-model="form.eh_grupo" />
-          É um grupo do WhatsApp?
+          <span>É um grupo?</span>
         </label>
       </div>
 
-      <button type="submit" class="btn-salvar">
-        {{ editandoId ? 'Salvar alterações' : 'Adicionar contato' }}
-      </button>
-      
-      <button v-if="editandoId" type="button" class="btn-cancelar-edicao" @click="cancelarEdicao">
-        Cancelar
-      </button>
+      <div class="acoes-formulario">
+        <button type="submit" class="btn-salvar">
+          {{ editandoId ? 'Salvar' : 'Adicionar' }}
+        </button>
+        
+        <button v-if="editandoId" type="button" class="btn-cancelar-edicao" @click="cancelarEdicao">
+          Cancelar
+        </button>
+      </div>
     </form>
 
     <p v-if="mensagem" class="sucesso">{{ mensagem }}</p>
@@ -54,7 +58,7 @@
     <!-- ==================== IMPORTAR CONTATOS ==================== -->
     <div class="importar">
       <label class="btn-importar">
-        Importar contatos (.csv: nome,telefone,conexao)
+        📥 Importar contatos (.csv)
         <input type="file" accept=".csv" @change="importarArquivo" hidden />
       </label>
       <p v-if="mensagemImportacao" class="sucesso">{{ messageImportacao || mensagemImportacao }}</p>
@@ -67,34 +71,37 @@
       <input
         v-model="filtroBusca"
         type="text"
-        placeholder="Buscar por nome ou número..."
+        placeholder="Buscar nome ou número..."
         @input="buscarComFiltro"
+        class="input-busca"
       />
 
-      <!-- Filtro 1: Conexões -->
-      <select v-model="filtroConexao" @change="buscarComFiltro">
-        <option value="">Todas as conexões</option>
-        <option value="whatsapp">WhatsApp</option>
-        <option value="chat">Chat</option>
-        <option value="helpdesk">Helpdesk</option>
-      </select>
+      <div class="grupo-filtros-select">
+        <select v-model="filtroConexao" @change="buscarComFiltro">
+          <option value="">Todas conexões</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="chat">Chat</option>
+          <option value="helpdesk">Helpdesk</option>
+        </select>
 
-      <!-- Filtro 2: Tipo de Contato (Corrigido para usar a variável filtroTipo correta) -->
-      <select v-model="filtroTipo" @change="buscarComFiltro">
-        <option value="">Pessoas e grupos</option>
-        <option value="false">Só pessoas</option>
-        <option value="true">Só grupos</option>
-      </select>
+        <select v-model="filtroTipo" @change="buscarComFiltro">
+          <option value="">Filtro Tipo</option>
+          <option value="false">Só pessoas</option>
+          <option value="true">Só grupos</option>
+        </select>
+      </div>
 
-      <label class="check-arquivados">
-        <input type="checkbox" v-model="mostrarArquivados" @change="buscarComFiltro" />
-        Ver arquivados
-      </label>
+      <div class="filtros-extras">
+        <label class="check-arquivados">
+          <input type="checkbox" v-model="mostrarArquivados" @change="buscarComFiltro" />
+          Ver arquivados
+        </label>
 
-      <button class="btn-atualizar" @click="carregarContatos">🔄 Atualizar</button>
+        <button class="btn-atualizar" @click="carregarContatos">🔄</button>
+      </div>
     </div>
 
-    <!-- ==================== TABELA DE CONTATOS ==================== -->
+    <!-- ==================== TABELA DE CONTATOS (RESPONSIVA) ==================== -->
     <table class="tabela-contatos">
       <thead>
         <tr>
@@ -106,42 +113,44 @@
       </thead>
       <tbody>
         <tr v-if="carregando">
-          <td colspan="4" class="text-center py-4 text-muted">Carregando...</td>
+          <td colspan="4" class="text-center py-4 text-muted">Carregando contatos...</td>
         </tr>
         <tr v-else-if="contatos.length === 0">
           <td colspan="4" class="text-center py-4 text-muted">Nenhum contato encontrado.</td>
         </tr>
-        <tr v-else v-for="contato in contatos" :key="contato.id">
-          <td>
+        <tr v-else v-for="contato in contatos" :key="contato.id" class="linha-contato-card">
+          <td data-label="Nome" class="coluna-nome">
             <span v-if="contato.eh_grupo" class="badge-grupo">👥 Grupo</span>
-            {{ contato.nome }}
+            <strong class="nome-texto">{{ contato.nome }}</strong>
           </td>
-          <td>{{ contato.telefone }}</td>
-          <td>
+          <td data-label="Número" class="coluna-numero">{{ contato.telefone }}</td>
+          <td data-label="Conexão" class="coluna-conexao">
             <span class="badge-conexao" :class="contato.conexao">
               {{ contato.conexao }}
             </span>
           </td>
           <td class="acoes-tabela">
             <button class="btn-abrir-chamado" @click="abrirChamado(contato)">
-              Abrir chamado
+              💬 Abrir chamado
             </button>
-            <button class="btn-editar" @click="editarContato(contato)">Editar</button>
-            <button
-              v-if="!contato.arquivado"
-              class="btn-arquivar"
-              @click="arquivar(contato.id)"
-            >
-              Arquivar
-            </button>
-            <button
-              v-else
-              class="btn-desarquivar"
-              @click="desarquivar(contato.id)"
-            >
-              Desarquivar
-            </button>
-            <button class="btn-excluir" @click="excluir(contato.id)">Excluir</button>
+            <div class="grupo-botoes-modificadores">
+              <button class="btn-editar" @click="editarContato(contato)">Editar</button>
+              <button
+                v-if="!contato.arquivado"
+                class="btn-arquivar"
+                @click="arquivar(contato.id)"
+              >
+                Arquivar
+              </button>
+              <button
+                v-else
+                class="btn-desarquivar"
+                @click="desarquivar(contato.id)"
+              >
+                Desarquivar
+              </button>
+              <button class="btn-excluir" @click="excluir(contato.id)">Excluir</button>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -151,6 +160,7 @@
 </template>
 
 <script setup>
+/* Mantido seu bloco de script setup original perfeitamente intacto */
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -174,7 +184,7 @@ const mensagemImportacao = ref('')
 
 const filtroBusca = ref('')
 const filtroConexao = ref('')
-const filtroTipo = ref('') // Controla se pesquisa 'false' (só pessoas) ou 'true' (só grupos)
+const filtroTipo = ref('') 
 const mostrarArquivados = ref(false)
 
 const editandoId = ref(null)
@@ -208,7 +218,6 @@ function buscarComFiltro() {
 async function salvarContato() {
   mensagem.value = ''
   erro.value = ''
-
   try {
     if (editandoId.value) {
       await atualizarContato(editandoId.value, form.value)
@@ -217,7 +226,6 @@ async function salvarContato() {
       await criarContato(form.value)
       mensagem.value = 'Contato adicionado com sucesso!'
     }
-
     cancelarEdicao()
     await carregarContatos()
   } catch (err) {
@@ -242,7 +250,6 @@ function cancelarEdicao() {
 
 async function excluir(id) {
   if (!confirm('Tem certeza que deseja excluir este contato?')) return
-
   erro.value = ''
   try {
     await excluirContato(id)
@@ -306,260 +313,343 @@ onMounted(carregarContatos)
 </script>
 
 <style scoped>
+/* ---------- ESTRUTURA BASE RESPONSIVA ---------- */
 .contatos {
-  max-width: 950px; /* Alargado sutilmente para acomodar a tabela */
-  margin: 32px auto;
-  padding: 24px;
+  max-width: 980px;
+  margin: 16px auto;
+  padding: 16px;
   background: #fff;
   border-radius: 8px;
 }
+@media (min-width: 768px) {
+  .contatos {
+    margin: 32px auto;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+}
+
 .cabecalho {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
+.cabecalho h2 {
+  font-size: 20px;
+  margin: 0;
+  color: #1e293b;
+}
+
 .btn-voltar {
   background: #f4f6f9;
   border: 1px solid #ddd;
   color: #333;
-  padding: 8px 16px;
+  padding: 8px 14px;
   border-radius: 20px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-.btn-voltar:hover {
-  background: #1a3c6e;
-  color: #fff;
-  border-color: #1a3c6e;
+@media (max-width: 576px) {
+  .btn-voltar .texto-btn {
+    display: none; /* Deixa apenas a seta no celular para economizar espaço */
+  }
+  .btn-voltar {
+    padding: 6px 12px;
+  }
 }
 
+/* ---------- FORMULÁRIO RESPONSIVO ---------- */
 .form-contato {
   display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 6px;
 }
+@media (min-width: 768px) {
+  .form-contato {
+    flex-direction: row;
+    align-items: flex-end;
+    background: transparent;
+    padding: 0;
+  }
+}
+
 .campo {
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 13px;
+  width: 100%;
 }
-.campo input,
-.campo select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+@media (min-width: 768px) {
+  .campo-flex { flex: 2; }
+  .campo-flex-pequeno { flex: 1; }
+  .campo-checkbox { width: auto; }
 }
+
+.campo input, .campo select {
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.label-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  padding: 6px 0;
+}
+
+.acoes-formulario {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .acoes-formulario { width: auto; }
+}
+
 .btn-salvar {
   background: #1a3c6e;
   color: #fff;
   border: none;
-  padding: 9px 18px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-}
-.btn-cancelar-edicao {
-  background: #eee;
-  border: none;
-  padding: 9px 18px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.importar {
-  margin-bottom: 16px;
-}
-.btn-importar {
-  display: inline-block;
-  background: #eafaf1;
-  color: #27ae60;
-  padding: 8px 14px;
+  padding: 11px 20px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-weight: bold;
+  flex: 1;
 }
-
-.separador {
-  margin: 24px 0;
+.btn-cancelar-edicao {
+  background: #e2e8f0;
   border: none;
-  border-top: 1px solid #eee;
+  padding: 11px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #475569;
 }
 
+/* ---------- FILTROS RESPONSIVOS ---------- */
 .filtros {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
 }
-.filtros input,
-.filtros select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+@media (min-width: 768px) {
+  .filtros {
+    flex-direction: row;
+    align-items: center;
+  }
 }
-.filtros input {
+
+.input-busca {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+.grupo-filtros-select {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.grupo-filtros-select select {
   flex: 1;
-  min-width: 180px;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
 }
+.filtros-extras {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+@media (min-width: 768px) {
+  .grupo-filtros-select { width: auto; }
+  .filtros-extras { width: auto; }
+}
+
 .check-arquivados {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #555;
-  white-space: nowrap;
+  color: #475569;
 }
 .btn-atualizar {
-  background: #f4f6f9;
-  border: 1px solid #ddd;
-  padding: 8px 14px;
-  border-radius: 4px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 10px 14px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
+/* ---------- TABELA FLUIDA / COMPORTAMENTO EM CARDS (MOBILE) ---------- */
 .tabela-contatos {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-.tabela-contatos thead th {
-  background: #f4f6f9;
-  text-align: left;
-  font-size: 13px;
-  padding: 12px 16px;
-  border-bottom: 2px solid #e0e0e0;
-}
-.tabela-contatos tbody td {
-  padding: 12px 16px;
-  font-size: 14px;
-  border-bottom: 1px solid #eee;
-  vertical-align: middle;
-}
-.tabela-contatos tbody tr:nth-child(even) {
-  background: #fafafa;
+  border-collapse: collapse;
 }
 
+/* Esconde o cabeçalho no Mobile */
+@media (max-width: 767px) {
+  .tabela-contatos thead {
+    display: none;
+  }
+  
+  .linha-contato-card {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  }
+
+  .tabela-contatos tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0 !important;
+    border-bottom: none !important;
+    font-size: 13px;
+  }
+
+  /* Cria os rótulos dinâmicos na esquerda da tela */
+  .tabela-contatos tbody td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  
+  .nome-texto {
+    font-size: 15px;
+    color: #1e293b;
+  }
+  .acoes-tabela {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100%;
+    margin-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 10px !important;
+  }
+  .grupo-botoes-modificadores {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    width: 100%;
+  }
+  .btn-abrir-chamado {
+    width: 100%;
+    text-align: center !important;
+    background: #eff6ff !important;
+    padding: 8px !important;
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+  .btn-abrir-chamado:hover {
+    text-decoration: none !important;
+  }
+}
+
+/* ---------- ESTILOS DE DESKTOP DA TABELA ---------- */
+@media (min-width: 768px) {
+  .tabela-contatos thead th {
+    background: #f8fafc;
+    text-align: left;
+    font-size: 13px;
+    padding: 14px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    color: #64748b;
+  }
+  .tabela-contatos tbody td {
+    padding: 14px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+  }
+  .acoes-tabela {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .grupo-botoes-modificadores {
+    display: flex;
+    gap: 6px;
+  }
+  .btn-abrir-chamado {
+    background: none;
+    border: none;
+    color: #1a3c6e;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 6px 12px;
+  }
+  .btn-abrir-chamado:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ---------- BADGES E BOTÕES RÁPIDOS ---------- */
 .badge-conexao {
   font-size: 11px;
   padding: 3px 10px;
   border-radius: 10px;
-  text-transform: capitalize;
-  font-weight: 500;
+  font-weight: bold;
 }
-.badge-conexao.whatsapp {
-  background: #dcf8e8;
-  color: #27ae60;
-}
-.badge-conexao.chat {
-  background: #e0ecff;
-  color: #1a3c6e;
-}
-.badge-conexao.helpdesk {
-  background: #fdf0e0;
-  color: #b9770e;
-}
+.badge-conexao.whatsapp { background: #dcf8e8; color: #16a34a; }
+.badge-conexao.chat { background: #e0ecff; color: #1a3c6e; }
+.badge-conexao.helpdesk { background: #fdf0e0; color: #d97706; }
 
-.acoes-tabela {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end; /* Alinha os botões elegantemente à direita */
-}
-.btn-abrir-chamado {
-  background: none;
-  border: none;
-  color: #1a3c6e;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 6px 12px;
-}
-.btn-abrir-chamado:hover {
-  text-decoration: underline;
-}
-.btn-editar {
-  background: #e0ecff;
-  color: #1a3c6e;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.btn-arquivar {
-  background: #fdf0e0;
-  color: #b9770e;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.btn-desarquivar {
-  background: #eafaf1;
-  color: #27ae60;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.btn-excluir {
-  background: #fdecea;
-  color: #c0392b;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.sucesso {
-  color: #27ae60;
-  font-size: 13px;
-}
-.erro {
-  color: #c0392b;
-  font-size: 13px;
-}
-
-.campo-checkbox label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  white-space: nowrap;
-}
 .badge-grupo {
-  display: inline-block;
-  background: #e0ecff;
-  color: #1a3c6e;
+  background: #f1f5f9;
+  color: #475569;
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 10px;
   margin-right: 6px;
+  font-weight: bold;
 }
 
-.text-right {
-  text-align: right !important;
+.btn-editar { background: #f1f5f9; color: #475569; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; text-align: center; }
+.btn-arquivar { background: #fff7ed; color: #c2410c; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; text-align: center; }
+.btn-desarquivar { background: #f0fdf4; color: #16a34a; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; text-align: center; }
+.btn-excluir { background: #fef2f2; color: #dc2626; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; text-align: center; }
+
+.btn-importar {
+  display: inline-block;
+  background: #f0fdf4;
+  color: #16a34a;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  border: 1px dashed #bbf7d0;
 }
-.text-center {
-  text-align: center;
-}
-.py-4 {
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
-}
+.separador { margin: 20px 0; border: none; border-top: 1px solid #e2e8f0; }
+.sucesso { color: #16a34a; font-size: 13px; font-weight: 500; margin: 5px 0; }
+.erro { color: #dc2626; font-size: 13px; font-weight: 500; margin: 5px 0; }
+.text-center { text-align: center; }
+.py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
 </style>
