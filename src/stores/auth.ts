@@ -1,7 +1,5 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-// @ts-ignore (evita que o TS reclame de importar arquivos .js sem tipagem declarada)
-// @ts-ignore
 // @ts-ignore
 import { login as apiLogin, estaAutenticado, obterUsuarioLogado, isAdmin } from '@/services/authServices.js'
 import router from '../router'
@@ -21,6 +19,14 @@ export const useAuthStore = defineStore('auth', () => {
     return usuario.value?.perfil === 'ADM' || isAdmin()
   })
 
+  // 👑 ADICIONADO: Getter para validar se o usuário atual é o Dono do SaaS (SUPER_ADMIN)
+  const ehMaster = computed<boolean>(() => {
+    if (!usuario.value) return false
+    const perfilId = Number(usuario.value.perfil_id || 0)
+    const perfilNome = String(usuario.value.perfil || '').toUpperCase()
+    return perfilId === 3 || perfilNome === 'SUPER_ADMIN' || perfilNome === 'MASTER'
+  })
+
   const primeiroNome = computed<string>(() => {
     if (!usuario.value?.nome) return ''
     return usuario.value.nome.split(' ')[0]
@@ -31,23 +37,31 @@ export const useAuthStore = defineStore('auth', () => {
   // ==========================================
   
   /**
-   * Realiza o login, guarda o token e redireciona para o painel de chamados
+   * Realiza o login, guarda o token e atualiza o estado imediatamente
    */
   async function realizarLogin(email: string, senha: string): Promise<any> {
     try {
+      // 1. Limpa qualquer lixo de sessão anterior antes de tentar o novo login
+      limparSessao()
+
       const resposta = await apiLogin(email, senha)
       
-      // Atualiza as refs reativas do Pinia
+      // 🔥 FORÇA BRUTA CONTRA TIMING: Garantimos que o localStorage está populado 
+      // usando os dados diretos da resposta da API (ajuste as propriedades se seu back responder diferente)
+      if (resposta?.token && resposta?.usuario) {
+        localStorage.setItem('token', resposta.token)
+        localStorage.setItem('usuario', JSON.stringify(resposta.usuario))
+      }
+
+      // 2. Atualiza as refs reativas do Pinia com os dados novos já gravados
       token.value = localStorage.getItem('token')
       usuario.value = obterUsuarioLogado()
       autenticado.value = true
 
-      // Redireciona com segurança
-      router.push('/app/chamados')
-      return resposta
+      return resposta 
     } catch (error) {
       limparSessao()
-      throw error // Repassa o erro para a tela de login tratar visualmente
+      throw error 
     }
   }
 
@@ -60,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Limpa o estado da sessão localmente
+   * Limpa o estado da sessão localmente (Garante a higienização do navegador)
    */
   function limparSessao(): void {
     localStorage.removeItem('token')
@@ -75,6 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
     usuario, 
     autenticado, 
     eAdministrador, 
+    ehMaster, // 🚀 Exportado para o Router conseguir ler agora!
     primeiroNome, 
     realizarLogin, 
     logout, 

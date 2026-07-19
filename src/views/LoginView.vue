@@ -56,41 +56,52 @@
   </div>
 </template>
 
+
 <script setup>
-// Estados reativos do formulário
 import { ref } from 'vue'
-
-// Importa a Store de autenticação global do Pinia
+import { useRouter } from 'vue-router' // 👈 1. Importação que faltava
 import { useAuthStore } from '@/stores/auth'
-
-// Importa o cliente Socket.IO para conectá-lo assim que o login for aprovado
 import { socket } from '@/services/api.js'
-
-// Imagem de fundo
 import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
-const usuario = ref('') // Esse campo receberá o e-mail do usuário
+const usuario = ref('') // Armazena o e-mail digitado no input
 const senha = ref('')
 const erro = ref('')
 const carregando = ref(false)
 
+const router = useRouter() // 👈 2. Instanciando o router
 const authStore = useAuthStore()
 
-// Chamado ao enviar o formulário
-async function login() {
-  erro.value = ''
-  carregando.value = true
-
+// 👈 3. Nome corrigido para 'login' minúsculo, batendo com o @submit do HTML
+const login = async () => {
   try {
-    // 1. Dispara a ação de login na Store centralizadora do Pinia
+    erro.value = ''
+    carregando.value = true
+
+    console.log('--- DISPARANDO LOGIN COMUM ---')
+    
+    // 👈 4. Corrigido para enviar 'usuario.value' em vez de 'email.value'
     await authStore.realizarLogin(usuario.value, senha.value)
 
-    // 2. Conectamos o Socket com segurança, já que o JWT está salvo
-    socket.connect()
-    
+    // 🔌 5. SOCKET RESTAURADO: Conecta e ativa os eventos em tempo real
+    if (socket && typeof socket.connect === 'function') {
+      console.log('🔌 Conectando ao canal do Socket.IO...')
+      socket.connect()
+    }
+
+  // 🚀 REDIRECIONAMENTO INTELIGENTE BASEADO NO PERFIL REAL DO BANCO:
+    if (authStore.ehMaster) {
+      console.log('👑 Super Admin identificado! Redirecionando para o Painel Master...');
+      router.push('/master/empresas')
+    } else {
+      console.log('👤 Usuário comum identificado! Redirecionando para os Chamados...');
+      router.push('/app/chamados')
+    }
+
   } catch (err) {
-    // Trata e expõe o erro do backend de forma limpa na tela
-    erro.value = err.response?.data?.erro || 'E-mail ou senha inválidos'
+    console.error('Erro no login comum:', err)
+    // Dica extra: mude para ".erro" se o seu backend retornar o padrão que configuramos antes
+    erro.value = err.response?.data?.erro || err.response?.data?.message || 'E-mail ou senha inválidos'
   } finally {
     carregando.value = false
   }
