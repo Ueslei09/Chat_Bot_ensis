@@ -1,10 +1,10 @@
 <template>
   <!-- master-auth-wrapper: Centraliza e aplica padding de segurança nos cantos -->
-  <div class="master-auth-wrapper">
+  <div class="master-auth-wrapper" :style="{ backgroundImage: `url(${bgImage})` }">
     <div class="master-auth-box animate-fade-in">
       <div class="master-header">
         <div class="master-badge">SYSTEM ADMIN</div>
-        <h2>Moove <span class="accent">SaaS Multi-Tenant</span></h2>
+        <h2>Moove <span class="accent">Chat Multi</span></h2>
         <p>Autenticação de Segurança Corporativa</p>
       </div>
 
@@ -60,6 +60,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
 const email = ref('')
 const senha = ref('')
@@ -122,11 +123,18 @@ const handleMasterLogin = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: radial-gradient(circle at center, #1e1b4b 0%, #090514 100%);
+  
+  /* 🎨 Propriedades essenciais para encaixar a imagem de fundo perfeitamente */
+  background-size: cover;          /* Cobre toda a tela sem distorcer proporções */
+  background-position: center;     /* Centraliza o foco da imagem */
+  background-repeat: no-repeat;    /* Evita repetição em mosaico */
+  
+  
+  /*background-color: #090514;*/     
+  
   font-family: 'Segoe UI', Roboto, sans-serif;
-  padding: 16px; /* 🎯 Evita que o card cole nas extremidades no celular */
+  padding: 16px;
 }
-
 .master-auth-box {
   background: rgba(20, 15, 38, 0.75);
   backdrop-filter: blur(10px);

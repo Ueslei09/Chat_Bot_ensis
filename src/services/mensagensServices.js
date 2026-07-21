@@ -61,10 +61,10 @@ export async function editarMensagem(id, conteudo) {
 }
  
 /** Encaminha uma mensagem existente para outro chamado. */
-export async function encaminharMensagem(id, chamadoIdDestino) {
-  const resposta = await api.post(`/mensagens/${id}/encaminhar`, {
-    chamado_id_destino: chamadoIdDestino
+export async function encaminharMensagem(mensagemId, chamadoDestinoId) {
+  // Passa o ID da mensagem na URL e o destino no body
+  const response = await api.post(`/mensagens/${mensagemId}/encaminhar`, {
+    chamado_destino_id: chamadoDestinoId
   })
-  return resposta.data
+  return response.data
 }
-

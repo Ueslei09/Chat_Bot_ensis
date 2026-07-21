@@ -100,24 +100,69 @@
       </div>
     </div>
 
-    <div v-if="modalEncaminharAberto" class="modal-overlay" @click.self="fecharModalEncaminhar">
-      <div class="modal-box">
-        <h3>Encaminhar mensagem</h3>
-        <label>Encaminhar para o chamado</label>
-        <select v-model="chamadoDestinoEncaminhar">
-          <option value="" disabled>Selecione...</option>
-          <option v-for="chamado in chamadosParaEncaminhar" :key="chamado.id" :value="chamado.id">
-            Chamado #{{ chamado.id }}
-          </option>
-        </select>
-        <div class="modal-botoes">
-          <button class="btn-cancelar" @click="fecharModalEncaminhar">Cancelar</button>
-          <button class="btn-confirmar" :disabled="!chamadoDestinoEncaminhar" @click="confirmarEncaminhar">
-            Encaminhar
-          </button>
+    <!-- MODAL: ENCAMINHAR MENSAGEM (ESTILO WHATSAPP COM AVATARS) -->
+<!-- MODAL: ENCAMINHAR MENSAGEM (ESTILO WHATSAPP COM AVATARS) -->
+<div v-if="modalEncaminharAberto" class="modal-overlay" @click.self="fecharModalEncaminhar">
+  <div class="modal-box modal-encaminhar-wpp">
+    
+    <!-- Cabeçalho do Modal -->
+    <div class="modal-header-wpp">
+      <h3>Encaminhar mensagem para</h3>
+      <button class="btn-fechar-modal" @click="fecharModalEncaminhar">✕</button>
+    </div>
+
+    <!-- Barra de Pesquisa -->
+    <div class="modal-search-box">
+      <input 
+        type="text" 
+        v-model="filtroPesquisaEncaminhar" 
+        placeholder="Pesquisar nome ou número" 
+      />
+    </div>
+
+    <!-- Lista de Conversas / Contatos com Avatar -->
+    <div class="modal-lista-conversas">
+      <label 
+        v-for="chamado in chamadosParaEncaminhar" 
+        :key="chamado.id" 
+        class="item-conversa-wpp"
+      >
+        <!-- Checkbox de Seleção amarrado à variável correta -->
+        <input 
+          type="checkbox" 
+          :value="chamado.id" 
+          v-model="chamadoDestinoEncaminhar" 
+        />
+        
+        <!-- Avatar Redondo -->
+        <div class="avatar-container">
+          <div class="avatar-placeholder">
+            {{ chamado.cliente_nome ? chamado.cliente_nome.charAt(0).toUpperCase() : 'C' }}
+          </div>
         </div>
+
+        <!-- Informações (Nome e Detalhe) -->
+        <div class="info-conversa">
+          <span class="nome-contato">Chamado #{{ chamado.id }} - {{ chamado.cliente_nome || 'Cliente' }}</span>
+          <span class="sub-contato">Clique para selecionar</span>
+        </div>
+      </label>
+
+      <div v-if="chamadosParaEncaminhar.length === 0" class="sem-resultados">
+        Nenhuma conversa encontrada.
       </div>
     </div>
+
+    <!-- Botões de Ação do Rodapé com a classe btn btn-primary -->
+    <div class="modal-botoes">
+      <button class="btn btn-secondary btn-cancelar" @click="fecharModalEncaminhar">Cancelar</button>
+      <button class="btn btn-primary" :disabled="!chamadoDestinoEncaminhar || chamadoDestinoEncaminhar.length === 0" @click="confirmarEncaminhar">
+        Encaminhar
+      </button>
+    </div>
+
+  </div>
+</div>
 
     <ChatDrawer :aberto="detalhesAbertos" :detalhes="detalhesChamado" :carregando="carregandoDetalhes"
       @fechar="detalhesAbertos = false" @recarregar="carregarDetalhes"
@@ -493,17 +538,19 @@ async function confirmarEdicao(texto) {
 
 const modalEncaminharAberto = ref(false)
 const mensagemParaEncaminhar = ref(null)
-const chamadoDestinoEncaminhar = ref('')
+const chamadoDestinoEncaminhar = ref([]) // 🎯 Agora é um Array, o que faz o Vue capturar o :value corretamente!
 const chamadosParaEncaminhar = ref([])
 
 async function abrirModalEncaminhar(msg) {
   mensagemParaEncaminhar.value = msg
-  chamadoDestinoEncaminhar.value = ''
-  try { chamadosParaEncaminhar.value = await listarChamadosPorStatus('EM_ATENDIMENTO') } 
-  catch (err) { console.error('Erro ao carregar chamados para encaminhar:', err) }
+  chamadoDestinoEncaminhar.value = [] // 🎯 Mantém como Array limpo ao abrir o modal
+  try { 
+    chamadosParaEncaminhar.value = await listarChamadosPorStatus('EM_ATENDIMENTO') 
+  } catch (err) { 
+    console.error('Erro ao carregar chamados para encaminhar:', err) 
+  }
   modalEncaminharAberto.value = true
 }
-
 function fecharModalEncaminhar() {
   modalEncaminharAberto.value = false
   mensagemParaEncaminhar.value = null
@@ -511,10 +558,20 @@ function fecharModalEncaminhar() {
 
 async function confirmarEncaminhar() {
   try {
-    await encaminharMensagem(mensagemParaEncaminhar.value.id, chamadoDestinoEncaminhar.value)
-    fecharModalEncaminhar()
-    mensagemAcao.value = 'Mensagem encaminhada com sucesso!'
-  } catch (err) { console.error('Erro ao encaminhar mensagem:', err) }
+    // 🎯 Valida se o array tem itens selecionados e pega o primeiro ID da lista
+    if (!chamadoDestinoEncaminhar.value || chamadoDestinoEncaminhar.value.length === 0) {
+      alert('Por favor, selecione um chamado de destino válido.');
+      return;
+    }
+
+    const destinoId = chamadoDestinoEncaminhar.value[0];
+
+    await encaminharMensagem(mensagemParaEncaminhar.value.id, destinoId);
+    fecharModalEncaminhar();
+    mensagemAcao.value = 'Mensagem encaminhada com sucesso!';
+  } catch (err) { 
+    console.error('Erro ao encaminhar mensagem:', err); 
+  }
 }
 
 async function carregarDetalhes() {
@@ -577,6 +634,142 @@ onUnmounted(() => {
   width: 100vw;
   overflow: hidden;
 }
+/* ---------- ESTILOS ESPECÍFICOS DO MODAL DE ENCAMINHAMENTO ESTILO WHATSAPP ---------- */
+.modal-encaminhar-wpp {
+  background: #ffffff !important;
+  color: #111b21 !important;
+  max-width: 480px !important;
+  padding: 20px !important;
+  border-radius: 12px !important;
+}
+
+.modal-header-wpp {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.modal-header-wpp h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+  color: #111b21;
+}
+
+.btn-fechar-modal {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #54656f;
+}
+
+.modal-search-box {
+  margin-bottom: 14px;
+}
+
+.modal-search-box input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #f0f2f5;
+  border: 1px solid #e9edef;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  color: #111b21;
+}
+
+.modal-search-box input:focus {
+  background: #ffffff;
+  border-color: #00a884;
+}
+
+.modal-lista-conversas {
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-top: 1px solid #f0f2f5;
+  border-bottom: 1px solid #f0f2f5;
+  padding: 8px 0;
+}
+
+.item-conversa-wpp {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.item-conversa-wpp:hover {
+  background: #f5f6f8;
+}
+
+.item-conversa-wpp input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #00a884;
+  cursor: pointer;
+}
+
+.avatar-container {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #dfe2e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar-placeholder {
+  font-weight: bold;
+  color: #54656f;
+  font-size: 16px;
+}
+
+.info-conversa {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.nome-contato {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111b21;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub-contato {
+  font-size: 12px;
+  color: #667781;
+}
+
+.sem-resultados {
+  text-align: center;
+  padding: 24px;
+  color: #667781;
+  font-size: 14px;
+}
+
+.modal-botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+
 
 /* 🎯 CORREÇÃO DE LARGURA DA SIDEBAR NO DESKTOP */
 .sidebar-responsiva {
@@ -613,6 +806,7 @@ onUnmounted(() => {
   width: 100%;
   overflow: hidden;
 }
+
 
 .mensagem-acao {
   padding: 8px 20px;
@@ -708,4 +902,5 @@ onUnmounted(() => {
   justify-content: center;
   border: 2px solid #ffffff !important;
 }
+
 </style>
