@@ -94,8 +94,8 @@
         <label>Resumo do atendimento</label>
         <textarea v-model="resumoFechamento" rows="3" placeholder="Resumo do atendimento"></textarea>
         <div class="modal-botoes">
-          <button class="btn-cancelar" @click="fecharModais">Cancelar</button>
-          <button class="btn-confirmar" @click="fechar">Fechar chamado</button>
+          <button class="btn-cancelar btn btn-primary" @click="fecharModais">Cancelar</button>
+          <button class="btn-confirmar btn btn-primary" @click="fechar">Fechar chamado</button>
         </div>
       </div>
     </div>
