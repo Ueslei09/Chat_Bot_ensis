@@ -208,6 +208,7 @@ import { isAdmin, getIdUsuario, getNomeUsuario } from '@/services/authServices.j
 
 const route = useRoute()
 
+
 const chatMessagesComponent = ref(null)
 const mostrarBotaoScroll = ref(false)
 const mensagensNaoLidas = ref(0)
@@ -492,24 +493,29 @@ async function enviar(texto) {
 
 async function enviarArquivoSelecionado(payload) {
   try {
-    const formData = new FormData()
-    formData.append('arquivo', payload.arquivo) 
-    formData.append('legenda', payload.legenda || '')
-    formData.append('chamado_id', chamadoSelecionado.value.id)
+    console.log("Payload recebido para envio:", payload);
 
-    const novaMensagemAnexo = await enviarArquivo(formData) 
-    const jaExiste = mensagens.value.some(m => m.id === novaMensagemAnexo.id)
-    if (!jaExiste) mensagens.value.push(novaMensagemAnexo)
-    nextTick(() => { rolarParaOFim() })
-  } catch (error) { console.error("Erro ao enviar arquivo:", error) }
+    // Se o payload for diretamente um Arquivo/Blob ou tiver a propriedade arquivo
+    const arquivoReal = payload instanceof File || payload instanceof Blob ? payload : payload?.arquivo;
+
+    if (!arquivoReal) {
+      console.error("Nenhum arquivo ou áudio encontrado no payload!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('arquivo', arquivoReal); 
+    formData.append('legenda', payload?.legenda || '');
+    formData.append('chamado_id', chamadoSelecionado.value.id);
+
+    const novaMensagemAnexo = await enviarArquivo(formData); 
+    const jaExiste = mensagens.value.some(m => m.id === novaMensagemAnexo.id);
+    if (!jaExiste) mensagens.value.push(novaMensagemAnexo);
+    nextTick(() => { rolarParaOFim(); });
+  } catch (error) { 
+    console.error("Erro ao enviar arquivo:", error); 
+  }
 }
-
-async function apagar(mensagemId) {
-  if (!confirm('Apagar esta mensagem?')) return
-  try { await apagarMensagem(mensagemId) } 
-  catch (err) { console.error('Erro ao apagar mensagem:', err) }
-}
-
 const respondendoA = ref(null)
 const editandoId = ref(null)
 const textoParaEditar = ref('')
@@ -620,6 +626,23 @@ onMounted(async () => {
   }
 })
 
+// Função para apagar uma mensagem pelo ID
+// Função para apagar uma mensagem pelo ID
+async function apagar(mensagemId) {
+  try {
+    if (!confirm('Deseja realmente apagar esta mensagem?')) return;
+
+    // Correção: Use 'apagarMensagem' que já está importada no topo do arquivo
+    await apagarMensagem(mensagemId);
+
+    // Remove a mensagem da lista localmente para sumir da tela na hora
+    mensagens.value = mensagens.value.filter(m => m.id !== mensagemId);
+    
+  } catch (error) {
+    console.error("Erro ao apagar mensagem:", error);
+    alert("Não foi possível apagar a mensagem.");
+  }
+}
 onUnmounted(() => {
   removerEventosSocket()
 })

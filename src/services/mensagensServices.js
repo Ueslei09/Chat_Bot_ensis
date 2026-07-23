@@ -33,16 +33,31 @@ export async function apagarMensagem(mensagemId) {
  * @param {number} chamadoId
  * @param {File} arquivo - objeto File vindo de um <input type="file">
  */
+  /**
+ * Envia um arquivo (imagem, áudio ou PDF) anexado a um chamado.
+ * @param {FormData} formData - Objeto FormData contendo o arquivo e o chamado_id
+ */
 
  // Importe a instância que já tem o baseUrl configurado para localhost:3000
 
 export async function enviarArquivo(formData) {
-  // Use a instância 'api' em vez de 'axios' para garantir que ele vá para a porta correta
-  const resposta = await api.post('/mensagens/upload', formData, {
+  // Pega o token salvo no login do navegador
+  const token = localStorage.getItem('token'); 
+
+  // 🔍 OLHE ISSO NO CONSOLE DO NAVEGADOR (F12)
+  console.log("VALOR EXATO DO TOKEN RECUPERADO:", token);
+
+  // Pega a URL base configurada na sua instância 'api' (ex: http://localhost:3000)
+  const baseURL = api.defaults.baseURL || 'http://localhost:3000';
+
+  // Usa o axios puro especificando a baseURL, a rota e injetando o token manualmente
+  const resposta = await axios.post(`${baseURL}/mensagens/upload`, formData, {
     headers: {
-      'Content-Type': 'multipart/form-data'
+      'Authorization': `Bearer ${token}`
+      // IMPORTANTE: Não informe 'Content-Type' aqui para o navegador gerar o boundary do FormData automaticamente
     }
   });
+
   return resposta.data;
 }
 /**

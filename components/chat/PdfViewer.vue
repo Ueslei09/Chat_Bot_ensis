@@ -25,9 +25,10 @@
       <a :href="url" target="_blank" rel="noopener noreferrer" class="link-pdf">
         👁️ Visualizar
       </a>
-      <a :href="url" target="_blank" download class="link-download">
-        ⬇️ Baixar
-      </a>
+     <!-- No seu template (HTML do Vue) -->
+<a @click.prevent="baixarArquivo(url)" class="link-download" style="cursor: pointer;">
+  ⬇️ Baixar
+</a>
     </div>
   </div>
 </template>
@@ -49,6 +50,26 @@ const nomeCortado = computed(() => {
   if (nomeCompleto.length <= 25) return nomeCompleto
   return nomeCompleto.substring(0, 22).trim() + '...'
 })
+
+
+async function baixarArquivo(fileUrl) {
+  try {
+    const response = await fetch(fileUrl);
+    const blob = await response.blob();
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    
+    // Extrai o nome do arquivo da URL
+    const nomeArquivo = fileUrl.split('/').pop() || 'documento.pdf';
+    link.download = nomeArquivo;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error('Erro ao baixar arquivo:', error);
+  }
+}
 </script>
 
 <style scoped>
