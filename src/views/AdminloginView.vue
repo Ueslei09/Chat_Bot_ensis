@@ -1,7 +1,11 @@
 <template>
-  <div class="login-page1" :style="{ backgroundImage: `url(${bgImage})` }">
+  <!-- login-page1: ocupa a tela inteira (100vh) e usa a imagem de fundo -->
+  <div class="login-page1 animate-fade-in" :style="{ backgroundImage: `url(${bgImage})` }">
+    <!-- Camada escura por cima da imagem para contraste perfeito -->
+    <div class="overlay"></div>
+
     <div class="login-box">
-      <h3 class="mb-4 text-center text-dark">Acesso Administrativo</h3>
+      <h3 class="mb-4 text-center text-dark fw-bold">Acesso Administrativo</h3>
 
       <form @submit.prevent="entrar">
         <div class="mb-3">
@@ -28,7 +32,7 @@
 
         <p v-if="erro" class="erro">{{ erro }}</p>
 
-        <button type="submit" class="btn btn-primary w-100" :disabled="carregando">
+        <button type="submit" class="btn btn-primary w-100 py-2.5" :disabled="carregando">
           {{ carregando ? 'Entrando...' : 'Entrar como ADM' }}
         </button>
       </form>
@@ -41,51 +45,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { socket } from '@/services/api.js'
-
-// Imagem de fundo
+import { useAdminLogin } from '@/composables/useAdminLogin'
 import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
-const email = ref('')
-const senha = ref('')
-const erro = ref('')
-const carregando = ref(false)
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-async function entrar() {
-  erro.value = ''
-  carregando.value = true
-
-  try {
-    // 1. Faz o login centralizado pela authStore
-    await authStore.realizarLogin(email.value, senha.value)
-
-    // 2. TRAVA DE SEGURANÇA: Só deixa passar se o usuário logado for de fato Administrador
-    if (!authStore.eAdministrador) {
-      // Login funcionou, mas a conta não é administrativa.
-      // Desfazemos a sessão local e barramos a entrada.
-      authStore.limparSessao()
-      erro.value = 'Esta conta não tem permissão de administrador.'
-      return
-    }
-
-    // 3. Conectamos o Socket.IO agora que o token administrativo está seguro
-    socket.connect()
-
-    // 4. Se é ADM, redireciona direto para a área de configurações
-    router.push('/app/configuracoes')
-
-  } catch (err) {
-    erro.value = err.response?.data?.erro || 'E-mail ou senha inválidos'
-  } finally {
-    carregando.value = false
-  }
-}
+const {
+  email,
+  senha,
+  erro,
+  carregando,
+  entrar
+} = useAdminLogin()
 </script>
 
 <style scoped>
@@ -99,21 +68,74 @@ async function entrar() {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px; /* 🎯 Evita que o card cole nas bordas no celular */
+}
+
+/* Camada escura semi-transparente por cima da imagem */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
 }
 
 .login-box {
+  position: relative;
+  z-index: 1;
   background: #fff;
-  padding: 32px;
+  padding: 24px; /* Padding seguro no mobile */
   border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
+  transition: all 0.3s ease;
 }
+
+/* Em telas maiores (Desktop), ganha respiro maior */
+@media (min-width: 576px) {
+  .login-box {
+    padding: 36px;
+  }
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-control {
+  padding: 11px 14px;
+  font-size: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+.form-control:focus {
+  border-color: #1a3c6e;
+  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.15);
+}
+
+.btn-primary {
+  background: #1a3c6e;
+  border: none;
+  font-weight: bold;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.btn-primary:hover {
+  background: #11294a;
+}
+.btn-primary:disabled {
+  background: #94a3b8;
+}
+
 .erro {
   color: #c0392b;
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
 }
+
 .link-voltar {
   display: block;
   text-align: center;
@@ -121,8 +143,18 @@ async function entrar() {
   font-size: 13px;
   color: #666;
   text-decoration: none;
+  font-weight: 500;
 }
 .link-voltar:hover {
   text-decoration: underline;
+  color: #1a3c6e;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

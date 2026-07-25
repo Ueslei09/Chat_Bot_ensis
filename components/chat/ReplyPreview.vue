@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { useReplyPreview } from '@/Composables/useReplyPreview'
 
 const props = defineProps({
   // 'citacao' (dentro da bolha de chat) | 'resposta' (barra azul) | 'edicao' (barra amarela)
@@ -47,13 +47,7 @@ const props = defineProps({
 
 defineEmits(['cancelar'])
 
-// ⚡ FORMATADOR INTELIGENTE (UX & Escalabilidade):
-// Evita que mensagens gigantescas quebrem a estrutura do chat e do input
-const textoFormatado = computed(() => {
-  if (!props.texto) return ''
-  if (props.texto.length <= props.limiteCaracteres) return props.texto
-  return props.texto.substring(0, props.limiteCaracteres).trim() + '...'
-})
+const { textoFormatado } = useReplyPreview(props)
 </script>
 
 <style scoped>
@@ -66,7 +60,8 @@ const textoFormatado = computed(() => {
   margin-bottom: 6px;
   border-radius: 4px;
   max-width: 100%;
-  word-break: break-all; /* Evita quebra de palavras esquisitas */
+  word-break: break-word; /* Evita estouro de layout com palavras longas */
+  overflow: hidden;
 }
 
 .preview-barra {
@@ -76,7 +71,9 @@ const textoFormatado = computed(() => {
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid #e2e8f0;
-  animation: slideUp 0.15s ease-out; /* Transição sutil ao abrir o preview */
+  animation: slideUp 0.15s ease-out;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .preview-texto {
@@ -85,6 +82,7 @@ const textoFormatado = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-right: 12px;
+  min-width: 0; /* Essencial para o text-overflow funcionar perfeitamente em containers flex no mobile */
 }
 
 .preview-barra.resposta {
@@ -111,6 +109,7 @@ const textoFormatado = computed(() => {
   align-items: center;
   justify-content: center;
   transition: background-color 0.15s;
+  flex-shrink: 0;
 }
 
 .btn-fechar-preview:hover {

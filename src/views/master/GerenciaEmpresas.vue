@@ -18,6 +18,7 @@
     </div>
 
     <!-- ABA 1: EMPRESAS CADASTRADAS -->
+    <!-- ABA 1: EMPRESAS CADASTRADAS -->
     <div v-if="abaAtiva === 'empresas'" class="table-container">
       <table class="tabela-responsiva">
         <thead>
@@ -31,21 +32,24 @@
         </thead>
         <tbody>
           <tr v-for="empresa in empresas" :key="empresa.id" class="linha-card-mobile">
-            <td data-label="ID">#{{ templateIdFix(empresa.id) }}</td>
-            <td data-label="Empresa"><strong>{{ empresa.nome }}</strong></td>
-            <td data-label="Cadastro">{{ new Date(empresa.criado_em).toLocaleDateString('pt-BR') }}</td>
-            <td data-label="Status">
+            <td data-label="ID:">{{ templateIdFix(empresa.id) }}</td>
+            <td data-label="Empresa:"><strong>{{ empresa.nome }}</strong></td>
+            <td data-label="Cadastro:">{{ new Date(empresa.criado_em).toLocaleDateString('pt-BR') }}</td>
+            <td data-label="Status:">
               <span :class="['badge', empresa.ativo ? 'badge-ativo' : 'badge-inativo']">
                 {{ empresa.ativo ? 'Ativa / Comercial' : 'Bloqueada / Inadimplente' }}
               </span>
             </td>
-            <td class="text-center acoes-flex-mobile">
+            <td data-label="Ações:" class="text-center acoes-flex-mobile">
               <button @click="prepararProvisao(empresa)" class="btn-financeiro">💰 Parcela</button>
               <button @click="alternarStatus(empresa)" :class="['btn-status', empresa.ativo ? 'btn-bloquear' : 'btn-ativar']">
                 {{ empresa.ativo ? '⛔ Bloquear' : '⚡ Liberar' }}
               </button>
-              <button @click="deletarEmpresa(empresa.id, empresa.nome)" class="btn-deletar-card">🗑️</button>
+              <button @click="deletarEmpresa(empresa.id, empresa.nome)" class="btn-deletar-card">🗑️ Excluir</button>
             </td>
+          </tr>
+          <tr v-if="empresas.length === 0">
+            <td colspan="5" class="text-center" style="color: #64748b; padding: 20px;">Nenhuma empresa cadastrada.</td>
           </tr>
         </tbody>
       </table>
@@ -65,11 +69,11 @@
         </thead>
         <tbody>
           <tr v-for="lead in leads" :key="lead.id" class="linha-card-mobile">
-            <td data-label="ID">#{{ lead.id }}</td>
-            <td data-label="Potencial"><strong>{{ lead.nome_empresa }}</strong></td>
-            <td data-label="Responsável">{{ lead.nome_responsavel }}</td>
-            <td data-label="Segmento"><span class="badge-segmento">{{ lead.segmento || 'Não Informado' }}</span></td>
-            <td data-label="Telefone">{{ lead.telefone }}</td>
+            <td data-label="ID"><span>#{{ lead.id }}</span></td>
+            <td data-label="Potencial"><span><strong>{{ lead.nome_empresa }}</strong></span></td>
+            <td data-label="Responsável"><span>{{ lead.nome_responsavel }}</span></td>
+            <td data-label="Segmento"><span><span class="badge-segmento">{{ lead.segmento || 'Não Informado' }}</span></span></td>
+            <td data-label="Telefone"><span>{{ lead.telefone }}</span></td>
           </tr>
           <tr v-if="leads.length === 0">
             <td colspan="5" class="text-center" style="color: #64748b; padding: 20px;">Nenhum lead comercial cadastrado.</td>
@@ -94,13 +98,13 @@
         </thead>
         <tbody>
           <tr v-for="inadimplente in inadimplentes" :key="inadimplente.id" class="linha-card-mobile">
-            <td data-label="ID Fatura">#{{ inadimplente.id }}</td>
-            <td data-label="Empresa"><strong style="color: #ef4444;">{{ inadimplente.nome }}</strong></td>
-            <td data-label="Vencimento">{{ new Date(inadimplente.data_vencimento).toLocaleDateString('pt-BR') }}</td>
-            <td data-label="Atraso"><span class="badge-atraso">{{ inadimplente.dias_atraso }} dias</span></td>
-            <td data-label="Parcela"><span class="badge-segmento">{{ inadimplente.numero_parcela || 'Mensalidade' }}</span></td>
-            <td data-label="Valor Devido" style="font-weight: bold; color: #f43f5e;">R$ {{ Number(inadimplente.valor).toFixed(2) }}</td>
-            <td class="text-center acoes-flex-mobile">
+            <td data-label="ID Fatura"><span>#{{ inadimplente.id }}</span></td>
+            <td data-label="Empresa"><span><strong style="color: #ef4444;">{{ inadimplente.nome }}</strong></span></td>
+            <td data-label="Vencimento"><span>{{ new Date(inadimplente.data_vencimento).toLocaleDateString('pt-BR') }}</span></td>
+            <td data-label="Atraso"><span><span class="badge-atraso">{{ inadimplente.dias_atraso }} dias</span></span></td>
+            <td data-label="Parcela"><span><span class="badge-segmento">{{ inadimplente.numero_parcela || 'Mensalidade' }}</span></span></td>
+            <td data-label="Valor Devido"><span>R$ {{ Number(inadimplente.valor).toFixed(2) }}</span></td>
+            <td data-label="Ações" class="text-center acoes-flex-mobile">
               <button @click="confirmarBaixaPagamento(inadimplente.id, inadimplente.nome)" class="btn-ativar-baixa">
                 ✅ Baixar e Reativar
               </button>
@@ -131,18 +135,18 @@
         </thead>
         <tbody>
           <tr v-for="fatura in todasFaturas" :key="fatura.id" class="linha-card-mobile">
-            <td data-label="ID Lançamento">#{{ fatura.id }}</td>
-            <td data-label="Empresa"><strong>{{ fatura.empresa_nome }}</strong></td>
-            <td data-label="Parcela"><span class="badge-segmento">{{ fatura.numero_parcela || 'Mensalidade' }}</span></td>
-            <td data-label="Valor" style="font-weight: bold;">R$ {{ Number(fatura.valor).toFixed(2) }}</td>
-            <td data-label="Vencimento">{{ new Date(fatura.data_vencimento).toLocaleDateString('pt-BR') }}</td>
-            <td data-label="Pagamento">{{ fatura.data_pagamento ? new Date(fatura.data_pagamento).toLocaleDateString('pt-BR') : '—' }}</td>
+            <td data-label="ID Lançamento"><span>#{{ fatura.id }}</span></td>
+            <td data-label="Empresa"><span><strong>{{ fatura.empresa_nome }}</strong></span></td>
+            <td data-label="Parcela"><span><span class="badge-segmento">{{ fatura.numero_parcela || 'Mensalidade' }}</span></span></td>
+            <td data-label="Valor"><span>R$ {{ Number(fatura.valor).toFixed(2) }}</span></td>
+            <td data-label="Vencimento"><span>{{ new Date(fatura.data_vencimento).toLocaleDateString('pt-BR') }}</span></td>
+            <td data-label="Pagamento"><span>{{ fatura.data_pagamento ? new Date(fatura.data_pagamento).toLocaleDateString('pt-BR') : '—' }}</span></td>
             <td data-label="Status">
               <span :class="['badge', fatura.status === 'PAGO' ? 'badge-ativo' : 'badge-pendente']">
                 {{ fatura.status }}
               </span>
             </td>
-            <td class="text-center acoes-flex-mobile full-width-mobile">
+            <td data-label="Ação" class="text-center acoes-flex-mobile full-width-mobile">
               <button v-if="fatura.status === 'PENDENTE'" @click="confirmarBaixaPagamento(fatura.id, fatura.empresa_nome)" class="btn-financeiro-receber">
                 💸 Receber
               </button>
@@ -157,7 +161,7 @@
     </div>
 
     <!-- MODAL: LANÇAMENTO MANUAL DE PROVISÃO -->
-    <div v-if="abrirModalProvisao" class="modal-overlay">
+    <div v-if="abrirModalProvisao" class="modal-overlay" @click.self="abrirModalProvisao = false">
       <div class="modal-content">
         <h3>💰 Provisão Manual - {{ empresaSelecionada?.nome }}</h3>
         <form @submit.prevent="salvarProvisaoManual">
@@ -189,7 +193,7 @@
     </div>
 
     <!-- MODAL: NOVA EMPRESA -->
-    <div v-if="abrirModalEmpresa" class="modal-overlay">
+    <div v-if="abrirModalEmpresa" class="modal-overlay" @click.self="abrirModalEmpresa = false">
       <div class="modal-content">
         <h3>Cadastrar Novo Cliente SaaS</h3>
         <form @submit.prevent="salvarNovaEmpresa">
@@ -218,8 +222,8 @@
       </div>
     </div>
 
-    <!-- 🌟 MODAL ADICIONADO: NOVO LEAD COMERCIAL -->
-    <div v-if="abrirModalLead" class="modal-overlay">
+    <!-- MODAL: NOVO LEAD COMERCIAL -->
+    <div v-if="abrirModalLead" class="modal-overlay" @click.self="abrirModalLead = false">
       <div class="modal-content">
         <h3>📈 Cadastrar Novo Lead Comercial</h3>
         <form @submit.prevent="salvarNovoLead">
@@ -253,130 +257,32 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
-import { api } from '@/services/api'; 
+import { useGerenciarEmpresa } from '@/Composables/useGerenciarEmpresa'
 
-const abaAtiva = ref('empresas');
-const empresas = ref([]);
-const leads = ref([]);
-const inadimplentes = ref([]);
-const todasFaturas = ref([]); 
-
-const abrirModalEmpresa = ref(false);
-const abrirModalLead = ref(false); // Ref registrada!
-const abrirModalProvisao = ref(false);
-const carregando = ref(false);
-const empresaSelecionada = ref(null);
-
-const formEmpresa = reactive({ nomeEmpresa: '', nomeDono: '', emailDono: '', senhaDono: '' });
-const formLead = reactive({ nomeEmpresa: '', nomeResponsavel: '', segmento: '', telefone: '' });
-const formProvisao = reactive({ valor: '', data_vencimento: '', numero_parcela: '1/12', ja_pago: false });
-
-const templateIdFix = (id) => id;
-
-const carregarEmpresas = async () => {
-  try { const res = await api.get('/admin/empresas'); empresas.value = res.data; } catch { alert('Erro ao carregar as empresas.'); }
-};
-
-const carregarLeads = async () => {
-  try { const res = await api.get('/admin/empresas/comercial/leads'); leads.value = res.data; } catch { alert('Erro ao carregar os leads.'); }
-};
-
-const carregarInadimplentes = async () => {
-  try { const res = await api.get('/admin/empresas/inadimplencia'); inadimplentes.value = res.data; } catch { alert('Erro ao carregar lista de inadimplência.'); }
-};
-
-const carregarTodasFaturas = async () => {
-  try { const res = await api.get('/admin/empresas/financeiro/extrato'); todasFaturas.value = res.data; } catch { alert('Erro ao carregar o extrato financeiro.'); }
-};
-
-watch(abaAtiva, (novaAba) => {
-  if (novaAba === 'empresas') carregarEmpresas();
-  if (novaAba === 'comercial') carregarLeads();
-  if (novaAba === 'inadimplencia') carregarInadimplentes();
-  if (novaAba === 'extrato') carregarTodasFaturas(); 
-});
-
-const confirmarBaixaPagamento = async (faturaId, nomeEmpresa) => {
-  if (!confirm(`Confirmar o recebimento desta parcela da empresa "${nomeEmpresa}"? Isso irá reativar o acesso dela imediatamente.`)) return;
-  try {
-    const res = await api.put(`/admin/empresas/financeiro/liquidar/${faturaId}`);
-    alert(res.data.msg || 'Pagamento confirmado!');
-    if (abaAtiva.value === 'inadimplencia') carregarInadimplentes();
-    if (abaAtiva.value === 'extrato') carregarTodasFaturas();
-  } catch (err) {
-    alert(err.response?.data?.erro || 'Erro ao processar baixa do pagamento.');
-  }
-};
-
-const prepararProvisao = (empresa) => {
-  empresaSelecionada.value = empresa;
-  formProvisao.valor = '';
-  formProvisao.data_vencimento = '';
-  formProvisao.numero_parcela = '1/12';
-  formProvisao.ja_pago = false;
-  abrirModalProvisao.value = true;
-};
-
-const salvarProvisaoManual = async () => {
-  carregando.value = true;
-  try {
-    const payload = { empresa_id: empresaSelecionada.value.id, ...formProvisao };
-    await api.post('/admin/empresas/financeiro/provisao', payload);
-    alert(`Parcela (${formProvisao.numero_parcela}) registrada com sucesso!`);
-    abrirModalProvisao.value = false;
-  } catch (err) { alert(err.response?.data?.erro || 'Erro ao lançar provisão.'); }
-  finally { carregando.value = false; }
-};
-
-const salvarNovaEmpresa = async () => {
-  carregando.value = true;
-  try {
-    await api.post('/admin/empresas', formEmpresa);
-    alert('Empresa ativada!');
-    abrirModalEmpresa.value = false;
-    formEmpresa.nomeEmpresa = '';
-    formEmpresa.nomeDono = '';
-    formEmpresa.emailDono = '';
-    formEmpresa.senhaDono = '';
-    carregarEmpresas();
-  } catch { alert('Erro ao salvar empresa.'); }
-  finally { carregando.value = false; }
-};
-
-// 🌟 FUNÇÃO ADICIONADA: Salva o novo lead e fecha o modal
-const salvarNovoLead = async () => {
-  carregando.value = true;
-  try {
-    await api.post('/admin/empresas/comercial/leads', formLead);
-    alert('Lead comercial cadastrado com sucesso!');
-    abrirModalLead.value = false;
-    formLead.nomeEmpresa = '';
-    formLead.nomeResponsavel = '';
-    formLead.segmento = '';
-    formLead.telefone = '';
-    carregarLeads();
-  } catch (err) {
-    alert(err.response?.data?.erro || 'Erro ao cadastrar lead.');
-  } finally {
-    carregando.value = false;
-  }
-};
-
-const alternarStatus = async (empresa) => {
-  try { await api.put(`/admin/empresas/${empresa.id}/toggle-status`); empresa.ativo = !empresa.ativo; } catch { alert('Erro ao alterar status.'); }
-};
-
-const bloquearPorInadimplencia = async (empresaInadimplente) => {
-  if (!confirm(`Deseja suspender IMEDIATAMENTE o acesso da empresa "${empresaInadimplente.nome}"?`)) return;
-  try {
-    await api.put(`/admin/empresas/${empresaInadimplente.id}/toggle-status`);
-    alert(`Acesso revogado.`);
-    carregarInadimplentes();
-  } catch { alert('Erro ao suspender.'); }
-};
-
-onMounted(() => carregarEmpresas());
+const {
+  abaAtiva,
+  empresas,
+  leads,
+  inadimplentes,
+  todasFaturas,
+  abrirModalEmpresa,
+  abrirModalLead,
+  abrirModalProvisao,
+  carregando,
+  empresaSelecionada,
+  formEmpresa,
+  formLead,
+  formProvisao,
+  templateIdFix,
+  confirmarBaixaPagamento,
+  prepararProvisao,
+  salvarProvisaoManual,
+  salvarNovaEmpresa,
+  salvarNovoLead,
+  alternarStatus,
+  bloquearPorInadimplencia,
+  deletarEmpresa
+} = useGerenciarEmpresa()
 </script>
 
 <style scoped>
@@ -468,19 +374,21 @@ onMounted(() => carregarEmpresas());
     display: flex;
     flex-direction: column;
     background: #ffffff;
-    border-bottom: 2px dashed #e2e8f0;
-    padding: 14px;
-  }
-  .linha-card-mobile:last-child {
-    border-bottom: none;
+    border-bottom: 2px dashed #cbd5e1;
+    padding: 16px;
+    gap: 10px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   }
   .tabela-responsiva tbody td {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0 !important;
+    padding: 4px 0 !important;
     border-bottom: none !important;
     font-size: 14px;
+    color: #1e293b;
     text-align: right;
   }
   .tabela-responsiva tbody td::before {
@@ -489,16 +397,14 @@ onMounted(() => carregarEmpresas());
     color: #64748b;
     font-size: 12px;
     text-transform: uppercase;
-    text-align: left;
-    margin-right: 15px;
   }
   .acoes-flex-mobile {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     width: 100%;
-    margin-top: 10px;
-    border-top: 1px dashed #f1f5f9;
+    margin-top: 8px;
+    border-top: 1px dashed #e2e8f0;
     padding-top: 12px !important;
   }
   .acoes-flex-mobile::before {
@@ -511,9 +417,9 @@ onMounted(() => carregarEmpresas());
     border: none;
     padding: 8px !important;
     border-radius: 4px;
-  }
-  .full-width-mobile {
-    display: block !important;
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
   }
 }
 
@@ -553,7 +459,8 @@ onMounted(() => carregarEmpresas());
 .modal-content h3 { margin: 0 0 16px; color: #1e293b; font-size: 18px; }
 .form-group { margin-bottom: 14px; display: flex; flex-direction: column; }
 .form-group label { margin-bottom: 5px; font-weight: 600; color: #475569; font-size: 13px; }
-.form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+.form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+.form-group input:focus, .form-group select:focus { border-color: #1a3c6e; }
 .checkbox-row { flex-direction: row !important; gap: 8px; align-items: center; margin-top: 10px; }
 .checkbox-row label { margin: 0; cursor: pointer; font-size: 13px; color: #334155; }
 .checkbox-row input { cursor: pointer; width: 16px; height: 16px; }
@@ -568,5 +475,5 @@ onMounted(() => carregarEmpresas());
 .text-right { text-align: right; }
 
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 </style>

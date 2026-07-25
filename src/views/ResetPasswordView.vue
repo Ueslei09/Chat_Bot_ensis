@@ -54,57 +54,18 @@
 </template>
 
 <script setup>
-/* Mantido todo o seu bloco <script setup> original perfeitamente intacto */
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import api from '@/services/api'
+import { useResetPassword } from '@/composables/useResetPassword'
 import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
-const novaSenha = ref('')
-const confirmarSenha = ref('')
-const token = ref('')
-const carregando = ref(false)
-const mensagemSucesso = ref('')
-const mensagemErro = ref('')
-
-const route = useRoute()
-const router = useRouter()
-
-onMounted(() => {
-  token.value = route.query.token || ''
-})
-
-async function alterarSenha() {
-  if (novaSenha.value !== confirmarSenha.value) {
-    mensagemErro.value = 'As senhas não coincidem!'
-    return
-  }
-
-  if (novaSenha.value.length < 6) {
-    mensagemErro.value = 'A senha deve conter no mínimo 6 caracteres.'
-    return
-  }
-
-  carregando.value = true
-  mensagemErro.value = ''
-  mensagemSucesso.value = ''
-
-  try {
-    await api.post('/auth/redefinir-senha', {
-      token: token.value,
-      novaSenha: novaSenha.value
-    })
-
-    mensagemSucesso.value = 'Senha alterada com sucesso! Redirecionando...'
-    setTimeout(() => {
-      router.push('/login')
-    }, 2500)
-  } catch (error) {
-    mensagemErro.value = error.response?.data?.erro || 'Falha ao redefinir a senha.'
-  } finally {
-    carregando.value = false
-  }
-}
+const {
+  novaSenha,
+  confirmarSenha,
+  token,
+  carregando,
+  mensagemSucesso,
+  mensagemErro,
+  alterarSenha
+} = useResetPassword()
 </script>
 
 <style scoped>
@@ -118,14 +79,14 @@ async function alterarSenha() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px; /* 🎯 Evita que o card cole nas bordas da tela do celular */
+  padding: 20px;
 }
 
 /* Camada escura semi-transparente por cima da imagem (contraste) */
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5); /* Sutil aumento para melhorar legibilidade */
+  background: rgba(0, 0, 0, 0.5);
 }
 
 /* Cartão do formulário, flutuando acima da imagem e do overlay */
@@ -133,7 +94,7 @@ async function alterarSenha() {
   position: relative;
   z-index: 1;
   background: #ffffff;
-  padding: 24px; /* Reduzido no mobile para economizar espaço de tela */
+  padding: 24px;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
@@ -141,7 +102,6 @@ async function alterarSenha() {
   transition: all 0.3s ease;
 }
 
-/* Em telas maiores (Desktop), ganha mais respiro interno */
 @media (min-width: 576px) {
   .login-box {
     padding: 36px;

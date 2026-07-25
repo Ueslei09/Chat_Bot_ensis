@@ -10,14 +10,14 @@
       </button>
     </div>
 
-  <!-- CÓDIGO CORRIGIDO (Limpo e sem diretivas inválidas) -->
-<div v-if="carregando" class="drawer-carregando">
-  <div class="spinner-border text-primary spinner-sm mb-2" role="status"></div>
-  <p class="text-muted mb-0">Buscando informações...</p>
-</div>
+    <!-- Estado de carregamento -->
+    <div v-if="carregando" class="drawer-carregando">
+      <div class="spinner-border text-primary spinner-sm mb-2" role="status"></div>
+      <p class="text-muted mb-0">Buscando informações...</p>
+    </div>
 
     <div v-else-if="detalhes" class="drawer-conteudo">
-      <!-- Mapeia o chamado para o ClienteCard que já refatoramos -->
+      <!-- Mapeia o chamado para o ClienteCard -->
       <ClienteCard :cliente="detalhes.chamado" @atualizado="$emit('recarregar')" />
 
       <!-- Seções do chamado em si -->
@@ -82,7 +82,6 @@
         </div>
       </div>
 
-      <!-- Importação de arquivos com Case-Sensitive corrigido para evitar falha em Linux/Production Build -->
       <HistoricoChamados :historico="detalhes.historico" />
       <ArquivosCliente :arquivos="detalhes.arquivos" />
 
@@ -100,11 +99,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { useChatDrawer } from '@/Composables/useChatDrawer'
 import ClienteCard from './ClienteCard.vue'
-import HistoricoChamados from './HistoricoChamados.vue' // Corrigido Case-Sensitive 'Historicochamados' -> 'HistoricoChamados'
-import ArquivosCliente from './ArquivosCliente.vue' // Corrigido de 'ArquivoClientes' para 'ArquivosCliente' para corresponder ao padrão do projeto
-import { atualizarDetalhesChamado } from '@/services/chamadoServices.js'
+import HistoricoChamados from './HistoricoChamados.vue'
+import ArquivosCliente from './ArquivosCliente.vue'
 
 const props = defineProps({
   aberto: { type: Boolean, default: false },
@@ -114,114 +112,24 @@ const props = defineProps({
 
 defineEmits(['fechar', 'recarregar', 'transferir', 'encerrar'])
 
-const tagsEditaveis = ref('')
-const observacoesEditaveis = ref('')
-const salvando = ref(false)
-
-// Guarda cópia do estado atual para só salvar se houver mudança de fato (Evita requisições à toa no blur)
-let copiaTagsOriginais = ''
-let copiaObsOriginais = ''
-
-// Sincroniza dados com o chamado atual
-watch(
-  () => props.detalhes,
-  (novo) => {
-    if (novo?.chamado) {
-      tagsEditaveis.value = novo.chamado.tags || ''
-      observacoesEditaveis.value = novo.chamado.observacoes || ''
-      copiaTagsOriginais = novo.chamado.tags || ''
-      copiaObsOriginais = novo.chamado.observacoes || ''
-    } else {
-      tagsEditaveis.value = ''
-      observacoesEditaveis.value = ''
-      copiaTagsOriginais = ''
-      copiaObsOriginais = ''
-    }
-  },
-  { immediate: true }
-)
-
-// Computed que gera o array de badges reativas a partir da string digitada pelo operador
-const tagsColecao = computed(() => {
-  if (!tagsEditaveis.value) return []
-  return tagsEditaveis.value.split(',').map(t => t.trim()).filter(Boolean)
-})
-
-// ⚡ SALVAMENTO SEGURO (Performance & Resiliência):
-// Evita requisições à API se o operador clicar no campo e sair sem alterar nada
-async function salvarDetalhes() {
-  if (!props.detalhes?.chamado?.id) return
-  
-  const tagsMudaram = tagsEditaveis.value.trim() !== copiaTagsOriginais.trim()
-  const obsMudaram = observacoesEditaveis.value.trim() !== copiaObsOriginais.trim()
-  
-  if (!tagsMudaram && !obsMudaram) return // Nenhuma alteração real, cancela request
-
-  salvando.value = true
-  try {
-    await atualizarDetalhesChamado(props.detalhes.chamado.id, {
-      tags: tagsEditaveis.value,
-      observacoes: observacoesEditaveis.value
-    })
-    // Atualiza cópias locais após salvamento bem-sucedido
-    copiaTagsOriginais = tagsEditaveis.value
-    copiaObsOriginais = observacoesEditaveis.value
-  } catch (err) {
-    console.error('Erro ao atualizar detalhes adicionais:', err)
-  } finally {
-    salvando.value = false
-  }
-}
-
-const tempoEmAtendimento = computed(() => {
-  if (!props.detalhes?.chamado) return '—'
-  const inicio = new Date(props.detalhes.chamado.criado_em)
-  const fim = props.detalhes.chamado.fechado_em ? new Date(props.detalhes.chamado.fechado_em) : new Date()
-  const diffMs = fim - inicio
-  
-  if (isNaN(diffMs) || diffMs < 0) return '—'
-  
-  const horas = Math.floor(diffMs / 3600000)
-  const minutos = Math.floor((diffMs % 3600000) / 60000)
-  return `${horas}h ${minutos}min`
-})
-
-function formatarData(dataString) {
-  if (!dataString) return '--/--/---- --:--'
-  try {
-    const data = new Date(dataString)
-    if (isNaN(data.getTime())) return '--/--/---- --:--'
-    return data.toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    })
-  } catch {
-    return '--/--/---- --:--'
-  }
-}
-
-function formatarStatus(status) {
-  if (!status) return ''
-  const mapeamento = {
-    'EM_ATENDIMENTO': 'Conversando',
-    'ABERTO': 'Fila',
-    'FECHADO': 'Finalizado'
-  }
-  return mapeamento[status] || status
-}
-
-function classeStatus(status) {
-  if (!status) return 'badge-padrao'
-  const statusFormatado = status.toLowerCase()
-  const conhecidos = ['aberto', 'em_atendimento', 'fechado']
-  return conhecidos.includes(statusFormatado) ? `badge-${statusFormatado}` : 'badge-padrao'
-}
+const {
+  tagsEditaveis,
+  observacoesEditaveis,
+  salvando,
+  tagsColecao,
+  salvarDetalhes,
+  tempoEmAtendimento,
+  formatarData,
+  formatarStatus,
+  classeStatus
+} = useChatDrawer(props)
 </script>
 
 <style scoped>
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4); /* Fundo com tom escurecido mais contemporâneo */
+  background: rgba(15, 23, 42, 0.4);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
@@ -237,15 +145,18 @@ function classeStatus(status) {
   top: 0;
   right: 0;
   height: 100vh;
-  width: 380px;
+  width: 100%;
+  max-width: 380px; /* Adaptável no desktop, preenche em telas mobile menores */
   background: #fff;
   box-shadow: -6px 0 24px rgba(0, 0, 0, 0.08);
   transform: translateX(100%);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); /* Curva de movimento mais natural */
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 200;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
+
 .drawer.aberto {
   transform: translateX(0);
 }
@@ -257,10 +168,12 @@ function classeStatus(status) {
   padding: 18px 20px;
   border-bottom: 1px solid #e2e8f0;
 }
+
 .drawer-topo strong {
   color: #1e293b;
   font-size: 16px;
 }
+
 .btn-fechar {
   background: none;
   border: none;
@@ -273,6 +186,7 @@ function classeStatus(status) {
   align-items: center;
   justify-content: center;
 }
+
 .btn-fechar:hover {
   background-color: #f1f5f9;
 }
@@ -295,19 +209,25 @@ function classeStatus(status) {
   padding: 18px 20px;
   border-bottom: 1px solid #e2e8f0;
 }
+
 .linha-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
   margin-bottom: 10px;
+  gap: 12px;
 }
+
 .linha-info:last-child {
   margin-bottom: 0;
 }
+
 .rotulo {
   color: #64748b;
+  flex-shrink: 0;
 }
+
 .rotulo-secao {
   display: flex;
   align-items: center;
@@ -317,9 +237,11 @@ function classeStatus(status) {
   margin-bottom: 8px;
   font-weight: 600;
 }
+
 .rotulo-secao i {
   color: #1a3c6e;
 }
+
 .badge {
   font-size: 10px;
   font-weight: 600;
@@ -328,6 +250,7 @@ function classeStatus(status) {
   color: #fff;
   text-transform: uppercase;
 }
+
 .badge-aberto { background: #f0ad4e; }
 .badge-em_atendimento { background: #1a3c6e; }
 .badge-fechado { background: #718096; }
@@ -340,10 +263,12 @@ function classeStatus(status) {
   border-radius: 4px;
   background-color: #f1f5f9;
 }
+
 .badge-prioridade.prioridade-alta {
   background-color: #fee2e2;
   color: #ef4444;
 }
+
 .badge-prioridade.prioridade-baixa {
   background-color: #f0fdf4;
   color: #22c55e;
@@ -355,6 +280,7 @@ function classeStatus(status) {
   flex-wrap: wrap;
   gap: 6px;
 }
+
 .tag-badge {
   background: #e0ecff;
   color: #1a3c6e;
@@ -362,6 +288,7 @@ function classeStatus(status) {
   padding: 3px 10px;
   border-radius: 10px;
   font-weight: 500;
+  word-break: break-word;
 }
 
 .salvando-status {
@@ -385,7 +312,9 @@ function classeStatus(status) {
   padding: 6px 12px;
   font-family: inherit;
   outline: none;
+  box-sizing: border-box;
 }
+
 .form-control:focus {
   border-color: #1a3c6e;
 }
@@ -401,16 +330,19 @@ function classeStatus(status) {
   border-radius: 50%;
   animation: spinner-border .75s linear infinite;
 }
+
 .spinner-sm {
   width: 1.2rem;
   height: 1.2rem;
   border-width: 0.15em;
 }
+
 .spinner-mini {
   width: 0.85rem;
   height: 0.85rem;
   border-width: 0.1em;
 }
+
 @keyframes spinner-border {
   to { transform: rotate(360deg); }
 }

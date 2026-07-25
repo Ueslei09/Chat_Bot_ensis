@@ -8,7 +8,7 @@
   <div v-else class="bolha-wrapper" :class="[mensagem.autor_tipo === 'CLIENTE' ? 'recebida' : 'enviada']">
     <div class="bolha">
       
-      <!-- 🔽 Botão de Setinha com SVG Nativo (Substituído o <i> por <svg> que funciona sempre!) -->
+      <!-- 🔽 Botão de Setinha com SVG Nativo -->
       <button class="message-menu-btn" @click.stop="toggleMenu" title="Opções">
         <svg viewBox="0 0 24 24">
           <path d="M12 15.25a.74.74 0 0 1-.53-.22l-5-5a.75.75 0 0 1 1.06-1.06L12 13.44l4.47-4.47a.75.75 0 1 1 1.06 1.06l-5 5a.74.74 0 0 1-.53.22z"/>
@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { useMessageBubble } from '@/Composables/useMessageBubble'
 import MessageMenu from './MessageMenu.vue'
 import ReplyPreview from './ReplyPreview.vue'
 import AudioPlayer from './AudioPlayer.vue'
@@ -77,67 +77,17 @@ const props = defineProps({
 
 const emit = defineEmits(['responder', 'encaminhar', 'editar', 'apagar', 'reagir'])
 
-const reacao = ref('')
-const menuAberto = ref(false)
-
-function salvarReacao(emoji) {
-  reacao.value = emoji
-  menuAberto.value = false
-}
-
-function toggleMenu() {
-  menuAberto.value = !menuAberto.value
-}
-
-function emitirAcao(evento) {
-  menuAberto.value = false
-  if (evento === 'apagar') {
-    emit('apagar', props.mensagem.id)
-  } else if (evento === 'editar') {
-    emit('editar', props.mensagem)
-  } else {
-    emit(evento, props.mensagem)
-  }
-}
-
-const fecharMenuExterno = () => {
-  menuAberto.value = false
-}
-
-onMounted(() => {
-  document.addEventListener('click', fecharMenuExterno)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', fecharMenuExterno)
-})
-
-const podeEditar = computed(() => props.mensagem.tipo === 'TEXTO' && props.souAutor)
-const podeApagar = computed(() => props.souAdmin || props.podeApagarGeral)
-
-const textoMensagemOriginal = computed(() => {
-  const original = props.todasMensagens.find(m => m.id === props.mensagem.resposta_a)
-  if (!original) return 'Mensagem original'
-  
-  if (original.tipo === 'IMAGEM') return '📷 Foto'
-  if (original.tipo === 'AUDIO') return '🎵 Áudio'
-  if (original.tipo === 'PDF') return '📄 Documento PDF'
-  
-  return original.conteudo.length > 60 
-    ? original.conteudo.substring(0, 60).trim() + '...' 
-    : original.conteudo
-})
-
-function formatarHora(dataString) {
-  if (!dataString) return '--:--'
-  try {
-    const data = new Date(dataString)
-    if (isNaN(data.getTime())) return '--:--'
-    return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return '--:--'
-  }
-}
+const {
+  reacao,
+  menuAberto,
+  podeEditar,
+  podeApagar,
+  textoMensagemOriginal,
+  salvarReacao,
+  toggleMenu,
+  emitirAcao,
+  formatarHora
+} = useMessageBubble(props, emit)
 </script>
 
 <style scoped>
@@ -158,9 +108,15 @@ function formatarHora(dataString) {
   display: flex;
   align-items: center;
   gap: 6px;
-  max-width: 65%;
+  max-width: 85%;
   position: relative;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+}
+
+@media (min-width: 768px) {
+  .bolha-wrapper {
+    max-width: 65%;
+  }
 }
 
 .bolha-wrapper.enviada {
@@ -179,7 +135,8 @@ function formatarHora(dataString) {
   min-width: 120px;
   max-width: 100%;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  position: relative; /* Crucial para prender o botão no canto superior direito */
+  position: relative;
+  box-sizing: border-box;
 }
 
 .bolha-wrapper.enviada .bolha {
@@ -191,7 +148,7 @@ function formatarHora(dataString) {
   border-top-left-radius: 0;
 }
 
-/* 🌟 BOTÃO DA SETINHA (Elegante, estilo WhatsApp) */
+/* 🌟 BOTÃO DA SETINHA */
 .message-menu-btn {
   position: absolute !important;
   top: 4px !important;
@@ -208,23 +165,19 @@ function formatarHora(dataString) {
   outline: none !important;
   box-shadow: none !important;
   
-  /* Começa invisível e surge suave no hover da bolha */
   opacity: 0 !important; 
   transition: opacity 0.15s ease, background-color 0.15s ease !important;
   z-index: 10 !important;
 }
 
-/* Mostra o botão ao passar o mouse na bolha */
 .bolha:hover .message-menu-btn {
   opacity: 1 !important;
 }
 
-/* Efeito de hover circular sutil */
 .message-menu-btn:hover {
   background-color: rgba(0, 0, 0, 0.06) !important;
 }
 
-/* Estilo do SVG interno */
 .message-menu-btn svg {
   fill: #667781 !important;
   width: 16px !important;
@@ -237,7 +190,6 @@ function formatarHora(dataString) {
   fill: #111b21 !important;
 }
 
-/* Container do corpo que respeita o espaço para o botão não sobrepor textos */
 .corpo-mensagem {
   padding-right: 18px !important;
 }
@@ -296,7 +248,6 @@ function formatarHora(dataString) {
   color: #777;
 }
 
-/* Emoji de reação fixado no rodapé da bolha */
 .emoji-reacao-container {
   position: absolute;
   bottom: -10px;

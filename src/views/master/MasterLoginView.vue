@@ -56,64 +56,16 @@
 </template>
 
 <script setup>
-/* Mantido todo o seu bloco <script setup> original perfeitamente intacto */
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useMasterLogin } from '@/composables/useMasterLogin'
 import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
-const email = ref('')
-const senha = ref('')
-const erro = ref('')
-const carregando = ref(false)
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const handleMasterLogin = async () => {
-  try {
-    erro.value = ''
-    carregando.value = true
-
-    console.log('--- ENVIANDO LOGIN MASTER ---')
-    
-    const resposta = await authStore.realizarLogin(email.value, senha.value)
-    const dadosDoServidor = resposta?.data?.user || resposta?.user || authStore.usuario
-
-    console.log('=== AUDITORIA DE LOGIN MASTER ===')
-    console.log('Objeto completo do usuário retornado:', dadosDoServidor)
-
-    if (dadosDoServidor) {
-      const idPerfil = String(dadosDoServidor.perfil_id || dadosDoServidor.profileId || '')
-      const nomePerfil = String(dadosDoServidor.perfil || dadosDoServidor.profile || '').toUpperCase()
-
-      console.log('ID do Perfil extraído:', idPerfil)
-      console.log('Nome do Perfil extraído:', nomePerfil)
-
-      const eMaster = idPerfil === '3' || 
-                      nomePerfil === 'MASTER' || 
-                      nomePerfil === 'SUPER_ADMIN' || 
-                      nomePerfil === 'SUPERADMIN'
-      if (eMaster) {
-        console.log('Acesso Master Autorizado pelo Servidor!')
-        router.push('/master/empresas')
-      } else {
-        console.error('O Servidor não confirmou este usuário como MASTER.')
-        erro.value = 'Acesso restrito apenas ao administrador do SaaS.'
-        authStore.limparSessao()
-      }
-    } else {
-      erro.value = 'Não foi possível ler os dados do usuário vindos do servidor.'
-      authStore.limparSessao()
-    }
-
-  } catch (err) {
-    console.error('Erro na requisição de login:', err)
-    erro.value = err.response?.data?.message || 'Chave de acesso ou senha incorreta.'
-  } finally {
-    carregando.value = false
-  }
-}
+const {
+  email,
+  senha,
+  erro,
+  carregando,
+  handleMasterLogin
+} = useMasterLogin()
 </script>
 
 <style scoped>
@@ -123,23 +75,21 @@ const handleMasterLogin = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  width: 100%;
   
-  /* 🎨 Propriedades essenciais para encaixar a imagem de fundo perfeitamente */
-  background-size: cover;          /* Cobre toda a tela sem distorcer proporções */
-  background-position: center;     /* Centraliza o foco da imagem */
-  background-repeat: no-repeat;    /* Evita repetição em mosaico */
-  
-  
-  /*background-color: #090514;*/     
+  background-size: cover;        
+  background-position: center;     
+  background-repeat: no-repeat;    
   
   font-family: 'Segoe UI', Roboto, sans-serif;
-  padding: 16px;
+  padding: 16px; /* Garante respiro nas bordas laterais no celular */
 }
+
 .master-auth-box {
-  background: rgba(20, 15, 38, 0.75);
-  backdrop-filter: blur(10px);
+  background: rgba(20, 15, 38, 0.82);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(99, 102, 241, 0.2);
-  padding: 24px; /* 🎯 Padding menor para caber melhor em displays menores */
+  padding: 24px; 
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
@@ -196,7 +146,7 @@ const handleMasterLogin = async () => {
 .master-form {
   display: flex;
   flex-direction: column;
-  gap: 16px; /* Reduzido levemente para economizar espaço vertical */
+  gap: 16px;
 }
 
 .input-wrapper {
@@ -237,7 +187,7 @@ const handleMasterLogin = async () => {
   background: transparent;
   border: none;
   color: #ffffff;
-  padding: 12px 0; /* Ajustado de 14px para 12px de preenchimento ergonômico */
+  padding: 12px 0;
   width: 100%;
   font-size: 0.95rem;
   outline: none;
@@ -272,7 +222,7 @@ const handleMasterLogin = async () => {
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 12px; /* Otimizado para melhor alcance no mobile */
+  padding: 12px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;

@@ -18,7 +18,7 @@
     <!-- Modal em tela cheia -->
     <div 
       v-if="aberta" 
-      class="modal-imagem" 
+      class="modal-imagem animate-fade-in" 
       role="dialog" 
       aria-modal="true"
       @click="fecharModal"
@@ -38,40 +38,17 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount } from 'vue'
+import { useImageViewer } from '@/composables/useImageViewer'
 
 defineProps({
   url: { type: String, required: true }
 })
 
-const aberta = ref(false)
-
-// Fecha o modal ao apertar a tecla ESC do teclado
-function escHandler(e) {
-  if (e.key === 'Escape') {
-    fecharModal()
-  }
-}
-
-function abrirModal() {
-  aberta.value = true
-  document.addEventListener('keydown', escHandler)
-  // Bloqueia o scroll do chat ao fundo enquanto visualiza a imagem em tela cheia
-  document.body.style.overflow = 'hidden'
-}
-
-function fecharModal() {
-  aberta.value = false
-  document.removeEventListener('keydown', escHandler)
-  // Restaura o scroll do site
-  document.body.style.overflow = ''
-}
-
-// Limpeza preventiva em caso de destruição do componente com o modal ainda aberto
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', escHandler)
-  document.body.style.overflow = ''
-})
+const {
+  aberta,
+  abrirModal,
+  fecharModal
+} = useImageViewer()
 </script>
 
 <style scoped>
@@ -79,24 +56,36 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
   max-width: 240px;
+  box-sizing: border-box;
 }
+
+@media (min-width: 768px) {
+  .image-viewer {
+    max-width: 280px;
+  }
+}
+
 .miniatura {
   width: 100%;
   max-height: 180px;
-  object-fit: cover; /* Recorta a imagem elegantemente na miniatura sem distorcer */
+  object-fit: cover;
   border-radius: 6px;
   cursor: zoom-in;
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: opacity 0.2s;
 }
+
 .miniatura:hover {
   opacity: 0.95;
 }
+
 .acoes-imagem {
   display: flex;
   justify-content: flex-start;
 }
+
 .link-download {
   font-size: 11px;
   color: #1a3c6e;
@@ -106,6 +95,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
 }
+
 .link-download:hover {
   text-decoration: underline;
 }
@@ -117,23 +107,25 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Garante que fique por cima de tudo no sistema, incluindo cabeçalhos do layout */
   z-index: 9999; 
   cursor: zoom-out;
-  animation: fadeIn 0.15s ease-out;
+  padding: 16px; /* Respiro de segurança nas bordas no mobile */
+  box-sizing: border-box;
 }
+
 .modal-imagem img {
   max-width: 92vw;
   max-height: 92vh;
   object-fit: contain;
   border-radius: 4px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  user-select: none; /* Impede arrastar a imagem em tela cheia acidentalmente */
+  user-select: none;
 }
+
 .btn-fechar {
   position: absolute;
-  top: 20px;
-  right: 24px;
+  top: 16px;
+  right: 16px;
   background: rgba(255, 255, 255, 0.15);
   border: none;
   color: #fff;
@@ -147,8 +139,20 @@ onBeforeUnmount(() => {
   justify-content: center;
   transition: background-color 0.15s;
 }
+
+@media (min-width: 768px) {
+  .btn-fechar {
+    top: 20px;
+    right: 24px;
+  }
+}
+
 .btn-fechar:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out;
 }
 
 @keyframes fadeIn {

@@ -25,51 +25,26 @@
       <a :href="url" target="_blank" rel="noopener noreferrer" class="link-pdf">
         👁️ Visualizar
       </a>
-     <!-- No seu template (HTML do Vue) -->
-<a @click.prevent="baixarArquivo(url)" class="link-download" style="cursor: pointer;">
-  ⬇️ Baixar
-</a>
+      <a @click.prevent="baixarArquivo(url)" class="link-download" style="cursor: pointer;">
+        ⬇️ Baixar
+      </a>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { usePdfViewer } from '@/Composables/usePdfViewer'
 
 const props = defineProps({
   url: { type: String, required: true },
   nomeArquivo: { type: String, default: '' }
 })
 
-const mostrarPreview = ref(false)
-
-// ⚡ FORMATADOR DE NOME (UX):
-// Corta o nome do PDF caso ele seja gigante para manter a bolha do chat simétrica
-const nomeCortado = computed(() => {
-  const nomeCompleto = props.nomeArquivo || 'Documento PDF'
-  if (nomeCompleto.length <= 25) return nomeCompleto
-  return nomeCompleto.substring(0, 22).trim() + '...'
-})
-
-
-async function baixarArquivo(fileUrl) {
-  try {
-    const response = await fetch(fileUrl);
-    const blob = await response.blob();
-    const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
-    
-    // Extrai o nome do arquivo da URL
-    const nomeArquivo = fileUrl.split('/').pop() || 'documento.pdf';
-    link.download = nomeArquivo;
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    console.error('Erro ao baixar arquivo:', error);
-  }
-}
+const {
+  mostrarPreview,
+  nomeCortado,
+  baixarArquivo
+} = usePdfViewer(props)
 </script>
 
 <style scoped>
@@ -77,11 +52,19 @@ async function baixarArquivo(fileUrl) {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-width: 260px;
+  width: 100%;
+  max-width: 280px;
   background: rgba(0, 0, 0, 0.02);
-  padding: 10px;
+  padding: 12px;
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .pdf-viewer {
+    max-width: 320px;
+  }
 }
 
 .pdf-linha {
@@ -109,6 +92,8 @@ async function baixarArquivo(fileUrl) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
 .pdf-linha:hover .pdf-nome {
@@ -126,7 +111,7 @@ async function baixarArquivo(fileUrl) {
 
 .pdf-acoes {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   padding-top: 8px;
   margin-top: 2px;

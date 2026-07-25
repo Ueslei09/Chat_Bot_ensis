@@ -24,124 +24,28 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount } from 'vue'
+import { useAudioRecorder } from '@/Composables/useAudioRecorder'
 
 const emit = defineEmits(['gravado'])
 
-const gravando = ref(false)
-const erro = ref('')
-const tempoSegundos = ref(0)
-const tempoFormatado = ref('00:00')
-
-let mediaRecorder = null
-let pedacos = []
-let streamAtual = null
-let intervaloTempo = null
-let deveEnviar = false // Flag de controle de fluxo seguro para o evento onstop
-
-function atualizarTempo() {
-  tempoSegundos.value++
-  const minutos = String(Math.floor(tempoSegundos.value / 60)).padStart(2, '0')
-  const segundos = String(tempoSegundos.value % 60).padStart(2, '0')
-  tempoFormatado.value = `${minutos}:${segundos}`
-}
-
-async function iniciarGravacao() {
-  erro.value = ''
-  pedacos = []
-  deveEnviar = false
-
-  try {
-    streamAtual = await navigator.mediaDevices.getUserMedia({ audio: true })
-    
-    // ⚡ SUPORTE AO SAFARI (iOS/macOS): Detecta qual codec de áudio é nativamente aceito pelo dispositivo
-    let options = { mimeType: 'audio/webm' }
-    if (!MediaRecorder.isTypeSupported('audio/webm')) {
-      if (MediaRecorder.isTypeSupported('audio/ogg')) {
-        options = { mimeType: 'audio/ogg' }
-      } else {
-        options = { mimeType: 'audio/mp4' } // Fallback para Safari/Apple devices
-      }
-    }
-
-    mediaRecorder = new MediaRecorder(streamAtual, options)
-
-    // ⚡ FLUXO CENTRALIZADO: Ouvintes configurados na montagem do fluxo
-    mediaRecorder.ondataavailable = (evento) => {
-      if (evento.data && evento.data.size > 0) {
-        pedacos.push(evento.data)
-      }
-    }
-
-    mediaRecorder.onstop = () => {
-      if (deveEnviar && pedacos.length > 0) {
-        // Usa o mimeType dinâmico suportado pelo dispositivo
-        const mimeType = mediaRecorder.mimeType || 'audio/webm'
-        const ext = mimeType.split(';')[0].split('/')[1] || 'webm'
-        
-        const blob = new Blob(pedacos, { type: mimeType })
-        const arquivo = new File([blob], `audio-${Date.now()}.${ext}`, { type: mimeType })
-        
-        emit('gravado', arquivo)
-      }
-      // Limpa os recursos sempre ao parar, independente de ter enviado ou descartado
-      encerrarStream()
-    }
-
-    mediaRecorder.start(250) // Captura em blocos curtos e constantes de 250ms (mais estável)
-    
-    gravando.value = true
-    tempoSegundos.value = 0
-    tempoFormatado.value = '00:00'
-    intervaloTempo = setInterval(atualizarTempo, 1000)
-  } catch (err) {
-    console.error('Erro ao acessar microfone:', err)
-    erro.value = 'Não foi possível acessar o microfone. Verifique a permissão do seu navegador.'
-  }
-}
-
-function encerrarStream() {
-  if (streamAtual) {
-    streamAtual.getTracks().forEach(track => track.stop())
-    streamAtual = null
-  }
-  if (intervaloTempo) {
-    clearInterval(intervaloTempo)
-    intervaloTempo = null
-  }
-  gravando.value = false
-}
-
-function cancelarGravacao() {
-  deveEnviar = false
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop()
-  } else {
-    encerrarStream()
-  }
-}
-
-function pararEEnviar() {
-  if (!mediaRecorder || mediaRecorder.state === 'inactive') return
-  deveEnviar = true
-  mediaRecorder.stop()
-}
-
-// Limpeza de recursos rigorosa ao destruir o componente para evitar a luz de "microfone ativo" no navegador
-onBeforeUnmount(() => {
-  deveEnviar = false
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop()
-  }
-  encerrarStream()
-})
+const {
+  gravando,
+  erro,
+  tempoFormatado,
+  iniciarGravacao,
+  cancelarGravacao,
+  pararEEnviar
+} = useAudioRecorder(emit)
 </script>
 
 <style scoped>
 .audio-recorder {
   display: flex;
   align-items: center;
+  position: relative;
+  box-sizing: border-box;
 }
+
 .btn-mic {
   background: none;
   border: none;
@@ -155,7 +59,9 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
 }
+
 .btn-mic:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
@@ -163,50 +69,69 @@ onBeforeUnmount(() => {
 .gravando-barra {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: #fdecea;
-  padding: 6px 14px;
+  padding: 6px 12px;
   border-radius: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  max-width: 100%;
 }
+
+@media (min-width: 768px) {
+  .gravando-barra {
+    padding: 6px 14px;
+    gap: 10px;
+  }
+}
+
 .ponto-vermelho {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #c0392b;
   animation: piscar 1.2s infinite;
+  flex-shrink: 0;
 }
+
 @keyframes piscar {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.3; transform: scale(0.9); }
 }
+
 .tempo {
   font-size: 13px;
   color: #c0392b;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
+
 .btn-cancelar-gravacao,
 .btn-enviar-gravacao {
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   cursor: pointer;
   font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: transform 0.1s;
+  flex-shrink: 0;
 }
+
 .btn-cancelar-gravacao:hover,
 .btn-enviar-gravacao:hover {
   transform: scale(1.1);
 }
+
 .btn-cancelar-gravacao {
   background: #eaeaea;
   color: #444;
 }
+
 .btn-enviar-gravacao {
   background: #27ae60;
   color: #fff;
@@ -217,5 +142,6 @@ onBeforeUnmount(() => {
   color: #c0392b;
   margin: 0 0 0 8px;
   font-weight: 500;
+  word-break: break-word;
 }
 </style>

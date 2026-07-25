@@ -9,7 +9,7 @@
       @cancelar="$emit('cancelar-resposta')"
     />
     
-    <!-- Preview de Edição (Corrigido de texto="mensagem" para a variável de estado dinâmica props.textoInicial) -->
+    <!-- Preview de Edição -->
     <ReplyPreview
       v-if="editando && estado === 'liberado'"
       modo="edicao"
@@ -138,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useChatFooter } from '@/Composables/useChatFooter'
 import ReplyPreview from './ReplyPreview.vue'
 import AudioRecorder from './AudioRecorder.vue'
 import AttachPreview from './AttachPreview.vue'
@@ -162,143 +162,32 @@ const emit = defineEmits([
   'confirmar-edicao', 'cancelar-edicao', 'cancelar-resposta'
 ])
 
-const texto = ref('')
-const textareaRef = ref(null)
-const footerRef = ref(null)
+const {
+  texto,
+  textareaRef,
+  footerRef,
+  estado,
+  emojiAberto,
+  emojisComuns,
+  menuAnexoAberto,
+  inputDocumento,
+  inputFoto,
+  inputAudio,
+  arquivoPendente,
+  aoClicarBotaoPrincipal,
+  resumoTexto,
+  aoEnviar,
+  ajustarAltura,
+  alternarEmoji,
+  inserirEmoji,
+  alternarAnexo,
+  abrirSeletor,
+  aoSelecionarArquivo,
+  confirmarEnvioArquivo,
+  aoGravarAudio,
+  limpar
+} = useChatFooter(props, emit)
 
-const estado = computed(() => {
-  if (props.status === 'FECHADO') return 'encerrado'
-  if (props.status === 'AGUARDANDO_CLIENTE') return 'aguardandoCliente'
-
-  if (props.status === 'EM_ATENDIMENTO') {
-    const souDono = props.chamado?.atendente_id === props.usuario?.id
-    const souAdmin = props.usuario?.perfil === 'ADM'
-    if (souDono || souAdmin) return 'liberado'
-    return 'bloqueado'
-  }
-
-  return 'liberado'
-})
-
-function aoClicarBotaoPrincipal() {
-  if (props.podeAssumir) {
-    emit('assumirChamado')
-  } else {
-    emit('solicitarTransferencia')
-  }
-}
-
-// Sincroniza o texto de edição vindo do componente pai
-watch(() => props.textoInicial, (novoValor) => { 
-  texto.value = novoValor || '' 
-  nextTick(ajustarAltura)
-})
-
-function resumoTexto(t) {
-  if (!t) return ''
-  return t.length > 60 ? t.slice(0, 60) + '...' : t
-}
-
-function aoEnviar(evento) {
-  if (evento?.shiftKey) return // Permite quebra de linha com Shift+Enter
-  if (!texto.value.trim()) return
-
-  if (props.editando) {
-    emit('confirmar-edicao', texto.value)
-  } else {
-    emit('enviarMensagem', texto.value)
-  }
-  
-  texto.value = ''
-  nextTick(ajustarAltura) // Reduz a caixa de volta para o tamanho padrão de uma única linha
-}
-
-// ------------------------------------------------------------
-// AJUSTE DINÂMICO DE ALTURA (UX WhatsApp):
-// ------------------------------------------------------------
-function ajustarAltura() {
-  const textarea = textareaRef.value
-  if (!textarea) return
-  textarea.style.height = 'auto'
-  // Permite expansão até uma altura máxima confortável (120px) antes de habilitar a rolagem
-  textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`
-}
-
-// ------------------------------------------------------------
-// EMOJI
-// ------------------------------------------------------------
-const emojiAberto = ref(false)
-const emojisComuns = ['😀', '😂', '😊', '😍', '👍', '🙏', '🎉', '❤️', '😢', '🔥']
-
-function alternarEmoji() {
-  emojiAberto.value = !emojiAberto.value
-  emit('abrirEmoji')
-}
-function inserirEmoji(emoji) {
-  texto.value += emoji
-  emojiAberto.value = false
-  nextTick(ajustarAltura)
-}
-
-// ------------------------------------------------------------
-// ANEXO
-// ------------------------------------------------------------
-const menuAnexoAberto = ref(false)
-const inputDocumento = ref(null)
-const inputFoto = ref(null)
-const inputAudio = ref(null)
-const arquivoPendente = ref(null)
-
-function alternarAnexo() {
-  menuAnexoAberto.value = !menuAnexoAberto.value
-}
-
-function abrirSeletor(tipo) {
-  menuAnexoAberto.value = false
-  if (tipo === 'documento') inputDocumento.value.click()
-  if (tipo === 'foto') inputFoto.value.click()
-  if (tipo === 'audio') inputAudio.value.click()
-}
-
-function aoSelecionarArquivo(evento) {
-  const arquivo = evento.target.files[0]
-  if (arquivo) arquivoPendente.value = arquivo
-  evento.target.value = ''
-}
-
-// Dentro do ChatFooter.vue
-function confirmarEnvioArquivo(legenda) {
-  emit('anexarArquivo', { arquivo: arquivoPendente.value, legenda })
-  arquivoPendente.value = null
-}
-function aoGravarAudio(arquivoAudio) {
-  emit('gravarAudio', arquivoAudio)
-}
-
-// ⚡ PERFORMANCE E ACESSIBILIDADE:
-// Só roda lógica pesada de fechamento por fora se um menu estiver de fato aberto!
-function fecharMenusAoClicarFora(event) {
-  if (!emojiAberto.value && !menuAnexoAberto.value) return
-
-  // Se o clique não foi dentro de nenhuma parte do footer, recolhe os dropdowns
-  if (footerRef.value && !footerRef.value.contains(event.target)) {
-    emojiAberto.value = false
-    menuAnexoAberto.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', fecharMenusAoClicarFora, true)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', fecharMenusAoClicarFora, true)
-})
-
-function limpar() {
-  texto.value = ''
-  nextTick(ajustarAltura)
-}
 defineExpose({ limpar })
 </script>
 
@@ -308,14 +197,24 @@ defineExpose({ limpar })
   flex-direction: column;
   background: #f0f2f5;
   border-top: 1px solid #e2e8f0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .campo-envio {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 10px 12px;
   background: #f0f2f5;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .campo-envio {
+    padding: 10px 16px;
+  }
 }
 
 .btn-icone {
@@ -330,7 +229,9 @@ defineExpose({ limpar })
   align-items: center;
   justify-content: center;
   transition: background-color 0.15s;
+  flex-shrink: 0;
 }
+
 .btn-icone:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
@@ -354,6 +255,7 @@ defineExpose({ limpar })
   z-index: 100;
   animation: scaleIn 0.1s ease-out;
 }
+
 .menu-emoji button {
   background: none;
   border: none;
@@ -363,6 +265,7 @@ defineExpose({ limpar })
   border-radius: 8px;
   transition: transform 0.1s;
 }
+
 .menu-emoji button:hover {
   transform: scale(1.15);
   background: #f1f5f9;
@@ -382,6 +285,7 @@ defineExpose({ limpar })
   z-index: 100;
   animation: scaleIn 0.1s ease-out;
 }
+
 .menu-anexo button {
   background: none;
   border: none;
@@ -396,9 +300,11 @@ defineExpose({ limpar })
   font-weight: 500;
   transition: background-color 0.15s;
 }
+
 .menu-anexo button:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
 .icone-item {
   width: 28px;
   height: 28px;
@@ -408,14 +314,16 @@ defineExpose({ limpar })
   justify-content: center;
   font-size: 13px;
   color: #fff;
+  flex-shrink: 0;
 }
+
 .icone-item.documento { background: #6c5ce7; }
 .icone-item.foto { background: #1e88e5; }
 .icone-item.audio { background: #ff8f00; }
 
 .campo-texto {
   flex: 1;
-  padding: 10px 16px;
+  padding: 10px 14px;
   border: 1px solid #fff;
   border-radius: 20px;
   resize: none;
@@ -427,7 +335,9 @@ defineExpose({ limpar })
   background: #fff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: border-color 0.2s;
+  min-width: 0;
 }
+
 .campo-texto:focus {
   border-color: #cbd5e1;
 }
@@ -446,17 +356,19 @@ defineExpose({ limpar })
   flex-shrink: 0;
   transition: background-color 0.15s, transform 0.1s;
 }
+
 .btn-enviar:hover:not(:disabled) {
   background-color: #11294a;
   transform: scale(1.05);
 }
+
 .btn-enviar:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .rodape-info {
-  padding: 24px;
+  padding: 20px 16px;
   background: #fff;
   text-align: center;
   display: flex;
@@ -464,17 +376,28 @@ defineExpose({ limpar })
   align-items: center;
   gap: 8px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
+  width: 100%;
 }
+
+@media (min-width: 768px) {
+  .rodape-info {
+    padding: 24px;
+  }
+}
+
 .icone-rodape {
   font-size: 28px;
   margin-bottom: 4px;
 }
+
 .titulo-rodape {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
   color: #1e293b;
 }
+
 .descricao-rodape {
   margin: 0;
   font-size: 13px;
@@ -482,9 +405,12 @@ defineExpose({ limpar })
   max-width: 460px;
   line-height: 1.5;
 }
+
 .botoes-rodape {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
   margin-top: 12px;
 }
@@ -501,25 +427,30 @@ defineExpose({ limpar })
   transition: all 0.15s ease;
   border: 1px solid transparent;
 }
+
 .btn-sm {
   padding: 6px 14px;
   font-size: 12px;
 }
+
 .btn-primary {
   background-color: #1a3c6e;
   border-color: #1a3c6e;
   color: #fff;
 }
+
 .btn-primary:hover {
   background-color: #11294a;
   border-color: #11294a;
 }
+
 .btn-link {
   background: none;
   border: none;
   color: #64748b;
   text-decoration: none;
 }
+
 .btn-link:hover {
   color: #1a3c6e;
   text-decoration: underline;
@@ -533,6 +464,7 @@ defineExpose({ limpar })
 .footer-fade-leave-active {
   transition: opacity 0.15s ease;
 }
+
 .footer-fade-enter-from,
 .footer-fade-leave-to {
   opacity: 0;

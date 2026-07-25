@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useChatMessages } from '@/Composables/useChatMessages'
 import MessageBubble from './MessageBubble.vue'
 
 const props = defineProps({
@@ -65,57 +65,12 @@ const emit = defineEmits([
   'scroll-monitor'
 ])
 
-const scrollContainer = ref(null)
-
-// Repassa o evento de rolagem para o componente pai
-function lidarComScroll(e) {
-  emit('scroll-monitor', e)
-}
-
-// ------------------------------------------------------------
-// LÓGICA DE AGRUPAMENTO DE DATAS (Igual ao WhatsApp)
-// ------------------------------------------------------------
-
-// Verifica se a mensagem atual pertence a um dia diferente da mensagem anterior
-function deveMostrarSeparador(index) {
-  if (index === 0) return true
-  
-  const dataAtual = obterDataFormatada(props.mensagens[index].criada_em)
-  const dataAnterior = obterDataFormatada(props.mensagens[index - 1].criada_em)
-  
-  return dataAtual !== dataAnterior
-}
-
-// Formata a data retornando "Hoje", "Ontem" ou a data real
-function obterDataFormatada(dataString) {
-  if (!dataString) return ''
-  try {
-    const dataMsg = new Date(dataString)
-    const hoje = new Date()
-    const ontem = new Date()
-    ontem.setDate(hoje.getDate() - 1)
-
-    // Normaliza as horas para comparar apenas os dias (Ano, Mês, Dia)
-    const msgZeroHora = new Date(dataMsg.getFullYear(), dataMsg.getMonth(), dataMsg.getDate()).getTime()
-    const hojeZeroHora = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime()
-    const ontemZeroHora = new Date(ontem.getFullYear(), ontem.getMonth(), ontem.getDate()).getTime()
-
-    if (msgZeroHora === hojeZeroHora) {
-      return 'Hoje'
-    } else if (msgZeroHora === ontemZeroHora) {
-      return 'Ontem'
-    } else {
-      // Exemplo de retorno: 15/07/2026
-      return dataMsg.toLocaleDateString('pt-BR', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      })
-    }
-  } catch {
-    return ''
-  }
-}
+const {
+  scrollContainer,
+  lidarComScroll,
+  deveMostrarSeparador,
+  obterDataFormatada
+} = useChatMessages(props, emit)
 
 defineExpose({
   scrollContainer
@@ -126,11 +81,19 @@ defineExpose({
 .area-mensagens {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   background: #eae6df;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .area-mensagens {
+    padding: 20px;
+  }
 }
 
 /* 🌟 DESIGN DO SEPARADOR DE DATA ESTILO WHATSAPP */
@@ -144,8 +107,8 @@ defineExpose({
 }
 
 .separador-data-texto {
-  background-color: rgba(24, 24, 24, 0.85) !important; /* Cinza escuro translúcido */
-  color: #e9edef !important; /* Branco suave de leitura fácil */
+  background-color: rgba(24, 24, 24, 0.85) !important;
+  color: #e9edef !important;
   font-size: 11.5px !important;
   font-weight: 500 !important;
   padding: 5px 14px !important;
@@ -180,6 +143,9 @@ defineExpose({
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   outline: none !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: center;
 }
 
 .btn-carregar-historico:hover {
@@ -191,6 +157,7 @@ defineExpose({
 
 .icone-carregar {
   transition: transform 0.3s ease !important;
+  flex-shrink: 0;
 }
 
 .btn-carregar-historico:hover .icone-carregar {

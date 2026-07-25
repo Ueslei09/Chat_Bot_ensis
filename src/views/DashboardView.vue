@@ -1,9 +1,9 @@
 <template>
-  <div class="container-fluid py-4 animate-fade-in">
+  <div class="container-fluid py-3 py-md-4 animate-fade-in dashboard-wrapper">
     <div class="row mb-4">
       <div class="col">
-        <h2 class="text-dark fw-bold">Dashboard de Atendimento</h2>
-        <p class="text-muted">Bem-vindo ao painel de controle do Moove Chat-Multi.</p>
+        <h2 class="text-dark fw-bold titulo-dashboard">Dashboard de Atendimento</h2>
+        <p class="text-muted subtitulo-dashboard">Bem-vindo ao painel de controle do Moove Chat-Multi.</p>
       </div>
     </div>
 
@@ -11,7 +11,7 @@
     <div class="row g-3 mb-4">
       <!-- Card: Meus Chamados -->
       <div class="col-12 col-md-4">
-        <div class="card border-0 shadow-sm p-3 bg-primary text-white">
+        <div class="card border-0 shadow-sm p-3 bg-primary text-white h-100 card-metrica">
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h6 class="text-uppercase text-white-50 small mb-1">Meus Chamados</h6>
@@ -24,7 +24,7 @@
 
       <!-- Card: Fila de Espera -->
       <div class="col-12 col-md-4">
-        <div class="card border-0 shadow-sm p-3 bg-warning text-dark">
+        <div class="card border-0 shadow-sm p-3 bg-warning text-dark h-100 card-metrica">
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h6 class="text-uppercase text-muted small mb-1">Fila de Espera</h6>
@@ -38,7 +38,7 @@
       <!-- Card: Status do WhatsApp Dinâmico -->
       <div class="col-12 col-md-4">
         <div :class="[
-          'card border-0 shadow-sm p-3 text-white transition-all', 
+          'card border-0 shadow-sm p-3 text-white transition-all h-100 card-metrica', 
           metricas.whatsappStatus === 'Online' ? 'bg-success' : 'bg-danger'
         ]">
           <div class="d-flex justify-content-between align-items-center">
@@ -54,16 +54,16 @@
 
     <!-- Seção de Atalhos Rápidos -->
     <div class="card border-0 shadow-sm">
-      <div class="card-body">
+      <div class="card-body p-3 p-md-4">
         <h5 class="card-title fw-bold mb-3">Atalhos do Sistema</h5>
         <div class="d-flex flex-wrap gap-2">
-          <router-link to="/app/chamados" class="btn btn-outline-primary btn-sm rounded-pill">
+          <router-link to="/app/chamados" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-2">
             <i class="bi bi-chat-dots-fill me-1"></i> Ir para o Chat
           </router-link>
-          <router-link to="/app/contatos" class="btn btn-outline-secondary btn-sm rounded-pill">
+          <router-link to="/app/contatos" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2">
             <i class="bi bi-person-lines-fill me-1"></i> Gerenciar Contatos
           </router-link>
-          <router-link to="/app/conexoes" class="btn btn-outline-secondary btn-sm rounded-pill">
+          <router-link to="/app/conexoes" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2">
             <i class="bi bi-phone-vibrate me-1"></i> Conectar WhatsApp
           </router-link>
         </div>
@@ -73,44 +73,56 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { api } from '@/services/api' // Sua instância global do Axios
+import { useDashboard } from '@/composables/useDashboard'
 
-const metricas = ref({
-  meusChamados: 0,
-  filaEspera: 0,
-  whatsappStatus: 'Offline'
-})
-
-const buscarDadosPainel = async () => {
-  try {
-    const resposta = await api.get('/app/dashboard/metricas')
-    metricas.value = resposta.data
-  } catch (err) {
-    console.error('Erro ao buscar estatísticas do painel:', err)
-  }
-}
-
-onMounted(() => {
-  buscarDadosPainel()
-})
+const { metricas } = useDashboard()
 </script>
 
 <style scoped>
-.card {
+.dashboard-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.titulo-dashboard {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .titulo-dashboard {
+    font-size: 1.85rem;
+  }
+}
+
+.subtitulo-dashboard {
+  font-size: 0.9rem;
+}
+
+@media (min-width: 768px) {
+  .subtitulo-dashboard {
+    font-size: 1rem;
+  }
+}
+
+.card-metrica {
   transition: transform 0.2s ease, background-color 0.3s ease;
+  border-radius: 12px;
 }
-.card:hover {
-  transform: translateY(-2px);
+
+.card-metrica:hover {
+  transform: translateY(-3px);
 }
+
 .transition-all {
   transition: all 0.3s ease;
 }
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out;
 }
+
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

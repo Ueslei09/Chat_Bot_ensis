@@ -1,5 +1,5 @@
 <template>
-  <div class="topo" @click="$emit('abrir-detalhes')">
+  <div class="topo animate-fade-in" @click="$emit('abrir-detalhes')">
     <div class="titulo">
       
       <!-- 🔙 BOTÃO RETORNO MOBILE: Aparece apenas em telas pequenas (< 768px) -->
@@ -21,7 +21,7 @@
       <div class="info-contato">
         <strong>{{ chamado.cliente_nome || `Chamado #${chamado.id}` }}</strong>
         <!-- Badge de status amigável e com cores semânticas -->
-        <span class="status-badge" :class="chamado.status.toLowerCase()">
+        <span class="status-badge" :class="chamado.status?.toLowerCase()">
           {{ formatarStatus(chamado.status) }}
         </span>
       </div>
@@ -76,36 +76,25 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { useChatHeader } from '@/Composables/useChatHeader'
 
 const props = defineProps({
   chamado: { type: Object, required: true },
   abaAtual: { type: String, required: true }
 })
 
-// 🎯 Incluído o 'voltar' na lista de emissões de eventos do cabeçalho
 defineEmits(['assumir', 'abrir-transferir', 'abrir-fechar', 'reabrir', 'abrir-detalhes', 'voltar'])
 
-const inicial = computed(() => {
-  const nome = props.chamado.cliente_nome
-  return nome ? nome.charAt(0).toUpperCase() : '?'
-})
-
-function formatarStatus(status) {
-  if (!status) return ''
-  const mapeamento = {
-    'EM_ATENDIMENTO': 'Conversando',
-    'ABERTO': 'Fila de espera',
-    'FECHADO': 'Finalizado'
-  }
-  return mapeamento[status] || status
-}
+const {
+  inicial,
+  formatarStatus
+} = useChatHeader(props)
 </script>
 
 <style scoped>
 .topo {
   background: #fff;
-  padding: 14px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
@@ -113,14 +102,27 @@ function formatarStatus(status) {
   cursor: pointer;
   user-select: none;
   transition: background-color 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
+
+@media (min-width: 768px) {
+  .topo {
+    padding: 14px 20px;
+  }
+}
+
 .topo:hover {
   background: #f8fafc;
 }
+
 .titulo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  margin-right: 12px;
 }
 
 /* 🌟 ESTILIZAÇÃO DO BOTÃO VOLTAR EXCLUSIVO PARA SMARTPHONES */
@@ -130,12 +132,14 @@ function formatarStatus(status) {
   font-size: 20px;
   color: #64748b;
   cursor: pointer;
-  padding: 4px 8px 4px 0px;
+  padding: 4px 6px 4px 0px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  flex-shrink: 0;
 }
+
 .btn-voltar-mobile:hover {
   color: #1e293b;
 }
@@ -161,6 +165,7 @@ function formatarStatus(status) {
   flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(26, 60, 110, 0.1);
 }
+
 .avatar-contato.grupo {
   background: #6c5ce7;
   font-size: 15px;
@@ -170,37 +175,43 @@ function formatarStatus(status) {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
+
 .info-contato strong {
-  font-size: 15px;
+  font-size: 14px;
   color: #1e293b;
-  /* Garante que nomes gigantes no mobile não quebrem a linha do cabeçalho */
-  max-width: 160px;
   white-space: nowrap;
   overflow: hidden;
-  text-truncate: ellipsis;
+  text-overflow: ellipsis;
 }
+
 @media (min-width: 576px) {
   .info-contato strong {
-    max-width: 100%;
+    font-size: 15px;
   }
 }
 
 .status-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   padding: 1px 8px;
   border-radius: 10px;
   width: fit-content;
+  white-space: nowrap;
 }
+
 .status-badge.aberto {
   background: #fef3c7;
   color: #d97706;
 }
+
 .status-badge.em_atendimento {
   background: #e0f2fe;
   color: #0369a1;
 }
+
 .status-badge.fechado {
   background: #f1f5f9;
   color: #475569;
@@ -208,14 +219,16 @@ function formatarStatus(status) {
 
 .icones-acao {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
+
 .icone-btn {
   background: none;
   border: none;
   font-size: 18px;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   line-height: 1;
   color: #64748b;
@@ -224,6 +237,7 @@ function formatarStatus(status) {
   justify-content: center;
   transition: all 0.15s ease;
 }
+
 .icone-btn:hover {
   background: #f1f5f9;
   color: #1e293b;
@@ -232,15 +246,27 @@ function formatarStatus(status) {
 .icone-btn.btn-sucesso {
   color: #22c55e;
 }
+
 .icone-btn.btn-sucesso:hover {
   background: #dcfce7;
   color: #15803d;
 }
+
 .icone-btn.btn-perigo {
   color: #ef4444;
 }
+
 .icone-btn.btn-perigo:hover {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>

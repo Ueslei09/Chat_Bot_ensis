@@ -1,3 +1,4 @@
+<!-- src/views/LoginView.vue -->
 <template>
   <!-- login-page: ocupa a tela inteira (100vh) e usa a imagem de fundo -->
   <div class="login-page" :style="{ backgroundImage: `url(${bgImage})` }">
@@ -11,23 +12,27 @@
 
       <form @submit.prevent="login">
         <div class="mb-3">
-          <label class="form-label">Usuário</label>
+          <label for="usuario" class="form-label">Usuário</label>
           <input
+            id="usuario"
             v-model="usuario"
             type="text"
             class="form-control"
             placeholder="Digite seu usuário"
+            aria-label="Usuário"
             required
           />
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Senha</label>
+          <label for="senha" class="form-label">Senha</label>
           <input
+            id="senha"
             v-model="senha"
             type="password"
             class="form-control"
             placeholder="Digite sua senha"
+            aria-label="Senha"
             required
           />
           <!-- Link Esqueci a senha -->
@@ -39,9 +44,10 @@
         </div>
 
         <!-- Mostra erro de login, se houver -->
-        <p v-if="erro" class="erro">{{ erro }}</p>
+        <p v-if="erro" class="erro" role="alert">{{ erro }}</p>
 
         <button type="submit" class="btn btn-primary w-100 py-2.5" :disabled="carregando">
+          <span v-if="carregando" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           {{ carregando ? 'Entrando...' : 'Entrar' }}
         </button>
       </form>
@@ -54,56 +60,22 @@
 </template>
 
 <script setup>
-/* Mantido todo o seu bloco <script setup> original perfeitamente intacto */
 import { ref } from 'vue'
-import { useRouter } from 'vue-router' 
-import { useAuthStore } from '@/stores/auth'
-import { socket } from '@/services/api.js'
+import { useAuth } from '@/Composables/useAuth'
 import bgImage from '@/assets/imagenschatbot/MOVE.png'
 
 const usuario = ref('') 
 const senha = ref('')
-const erro = ref('')
-const carregando = ref(false)
 
-const router = useRouter() 
-const authStore = useAuthStore()
+// Utiliza o composable de autenticação que criamos
+const { carregando, erro, executarLogin } = useAuth()
 
 const login = async () => {
-  try {
-    erro.value = ''
-    carregando.value = true
-
-    console.log('--- DISPARANDO LOGIN COMUM ---')
-    
-    await authStore.realizarLogin(usuario.value, senha.value)
-
-    if (socket && typeof socket.connect === 'function') {
-      console.log('🔌 Conectando ao canal do Socket.IO...')
-      socket.connect()
-    }
-
-    if (authStore.ehMaster) {
-      console.log('👑 Super Admin identificado! Redirecionando para o Painel Master...');
-      router.push('/master/empresas')
-    } else {
-      console.log('👤 Usuário comum identificado! Redirecionando para os Chamados...');
-      router.push('/app/chamados')
-    }
-
-  } catch (err) {
-    console.error('Erro no login comum:', err)
-    erro.value = err.response?.data?.erro || err.response?.data?.message || 'E-mail ou senha inválidos'
-  } finally {
-    carregando.value = false
-  }
+  await executarLogin(usuario.value, senha.value)
 }
 </script>
 
 <style scoped>
-
-
-
 /* Ocupa a tela inteira e cobre com a imagem de fundo */
 .login-page {
   position: relative;
@@ -114,30 +86,29 @@ const login = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px; /* 🎯 Evita que o card cole nos cantos da tela no celular */
+  padding: 20px;
 }
 
-/* Camada escura semi-transparente por cima da imagem (contraste) */
+/* Camada escura semi-transparente por cima da imagem */
 .overlay {
   position: absolute;
   inset: 0; 
-  background: rgba(0, 0, 0, 0.5); /* Aumentado de 0.45 para 0.5 para melhor contraste */
+  background: rgba(0, 0, 0, 0.5);
 }
 
-/* Cartão do formulário, flutuando acima da imagem e do overlay */
+/* Cartão do formulário */
 .login-box {
   position: relative; 
   z-index: 1;
-  background: #ffffff;
-  padding: 24px; /* Reduzido de 32px para 24px no mobile por padrão */
-  border-radius: 12px;
+  background: var(--bg-card, #ffffff);
+  padding: 24px;
+  border-radius: var(--radius-box, 12px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
   max-width: 380px;
   transition: all 0.3s ease;
 }
 
-/* Em telas maiores (Desktop), expande o espaçamento interno do formulário */
 @media (min-width: 576px) {
   .login-box {
     padding: 36px;
@@ -147,40 +118,49 @@ const login = async () => {
 .form-label {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-color, #475569);
 }
 
 .form-control {
   padding: 11px 14px;
   font-size: 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: var(--radius-base, 8px);
 }
+
 .form-control:focus {
-  border-color: #1a3c6e;
+  border-color: var(--primary-color, #1a3c6e);
   box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.15);
 }
 
 .btn-primary {
-  background: #1a3c6e;
+  background: var(--primary-color, #1a3c6e);
   border: none;
   padding: 11px;
   font-weight: bold;
   font-size: 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-base, 8px);
   transition: background 0.2s;
 }
+
 .btn-primary:hover {
-  background: #11294a;
+  background: var(--primary-hover, #11294a);
 }
+
 .btn-primary:disabled {
   background: #94a3b8;
 }
 
 .erro {
-  color: #dc2626;
+  color: var(--error-color, #dc2626);
   font-size: 13px;
   margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.link-admin, .link-forgot {
+  color: var(--primary-color, #1a3c6e);
+  text-decoration: none;
   font-weight: 500;
 }
 
@@ -189,11 +169,9 @@ const login = async () => {
   text-align: center;
   margin-top: 20px;
   font-size: 13px;
-  color: #1a3c6e;
-  text-decoration: none;
-  font-weight: 500;
 }
-.link-admin:hover {
+
+.link-admin:hover, .link-forgot:hover {
   text-decoration: underline;
 }
 
@@ -201,20 +179,15 @@ const login = async () => {
   text-align: right;
   margin-top: 6px;
 }
+
 .link-forgot {
   font-size: 12px;
-  color: #1a3c6e;
-  text-decoration: none;
-  font-weight: 500;
-}
-.link-forgot:hover {
-  text-decoration: underline;
 }
 
-/* Animação suave de entrada */
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out;
 }
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

@@ -61,7 +61,7 @@
         📥 Importar contatos (.csv)
         <input type="file" accept=".csv" @change="importarArquivo" hidden />
       </label>
-      <p v-if="mensagemImportacao" class="sucesso">{{ messageImportacao || mensagemImportacao }}</p>
+      <p v-if="mensagemImportacao" class="sucesso">{{ mensagemImportacao }}</p>
     </div>
 
     <hr class="separador" />
@@ -160,156 +160,32 @@
 </template>
 
 <script setup>
-/* Mantido seu bloco de script setup original perfeitamente intacto */
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import {
-  listarContatos,
-  criarContato,
-  atualizarContato,
-  excluirContato,
-  importarContatos,
-  arquivarContato,
-  desarquivarContato
-} from '@/services/contatoServices.js'
-import { criarChamado, assumirChamado } from '@/services/chamadoServices.js'
- 
-const router = useRouter()
+import { useContatos } from '@/composables/useContatos'
 
-const contatos = ref([])
-const carregando = ref(false)
-const mensagem = ref('')
-const erro = ref('')
-const mensagemImportacao = ref('')
-
-const filtroBusca = ref('')
-const filtroConexao = ref('')
-const filtroTipo = ref('') 
-const mostrarArquivados = ref(false)
-
-const editandoId = ref(null)
-const form = ref({
-  nome: '',
-  telefone: '',
-  conexao: 'whatsapp',
-  eh_grupo: false
-})
-
-async function carregarContatos() {
-  carregando.value = true
-  try {
-    contatos.value = await listarContatos({
-      busca: filtroBusca.value || undefined,
-      conexao: filtroConexao.value || undefined,
-      arquivados: mostrarArquivados.value ? 'true' : undefined,
-      grupos: filtroTipo.value || undefined
-    })
-  } catch (err) {
-    console.error('Erro ao carregar contatos:', err)
-  } finally {
-    carregando.value = false
-  }
-}
-
-function buscarComFiltro() {
-  carregarContatos()
-}
-
-async function salvarContato() {
-  mensagem.value = ''
-  erro.value = ''
-  try {
-    if (editandoId.value) {
-      await atualizarContato(editandoId.value, form.value)
-      mensagem.value = 'Contato atualizado com sucesso!'
-    } else {
-      await criarContato(form.value)
-      mensagem.value = 'Contato adicionado com sucesso!'
-    }
-    cancelarEdicao()
-    await carregarContatos()
-  } catch (err) {
-    erro.value = err.response?.data?.erro || 'Erro ao salvar contato'
-  }
-}
-
-function editarContato(contato) {
-  editandoId.value = contato.id
-  form.value = {
-    nome: contato.nome,
-    telefone: contato.telefone,
-    conexao: contato.conexao,
-    eh_grupo: contato.eh_grupo || false
-  }
-}
-
-function cancelarEdicao() {
-  editandoId.value = null
-  form.value = { nome: '', telefone: '', conexao: 'whatsapp', eh_grupo: false }
-}
-
-async function excluir(id) {
-  if (!confirm('Tem certeza que deseja excluir este contato?')) return
-  erro.value = ''
-  try {
-    await excluirContato(id)
-    await carregarContatos()
-  } catch (err) {
-    erro.value = err.response?.data?.erro || 'Erro ao excluir contato'
-  }
-}
-
-async function arquivar(id) {
-  await arquivarContato(id)
-  await carregarContatos()
-}
-
-async function desarquivar(id) {
-  await desarquivarContato(id)
-  await carregarContatos()
-}
-
-function importarArquivo(evento) {
-  const arquivo = evento.target.files[0]
-  if (!arquivo) return
-
-  const leitor = new FileReader()
-  leitor.onload = async (e) => {
-    const texto = e.target.result
-    const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean)
-
-    const contatosImportar = linhas.map(linha => {
-      const [nome, telefone, conexao] = linha.split(',').map(v => v?.trim())
-      return { nome, telefone, conexao: conexao || 'whatsapp' }
-    })
-
-    try {
-      const resultado = await importarContatos(contatosImportar)
-      mensagemImportacao.value = resultado.msg
-      await carregarContatos()
-    } catch (err) {
-      mensagemImportacao.value = err.response?.data?.erro || 'Erro ao importar contatos'
-    }
-  }
-  leitor.readAsText(arquivo)
-  evento.target.value = ''
-}
-
-function voltarParaChat() {
-  router.push('/app/chamados')
-}
-
-async function abrirChamado(contato) {
-  try {
-    const novoChamado = await criarChamado(contato.id)
-    await assumirChamado(novoChamado.id)
-    router.push({ path: '/app/chamados', query: { abrir: novoChamado.id } })
-  } catch (err) {
-    erro.value = err.response?.data?.erro || 'Erro ao abrir chamado'
-  }
-}
-
-onMounted(carregarContatos)
+const {
+  contatos,
+  carregando,
+  mensagem,
+  erro,
+  mensagemImportacao,
+  filtroBusca,
+  filtroConexao,
+  filtroTipo,
+  mostrarArquivados,
+  editandoId,
+  form,
+  carregarContatos,
+  buscarComFiltro,
+  salvarContato,
+  editarContato,
+  cancelarEdicao,
+  excluir,
+  arquivar,
+  desarquivar,
+  importarArquivo,
+  voltarParaChat,
+  abrirChamado
+} = useContatos()
 </script>
 
 <style scoped>
@@ -356,7 +232,7 @@ onMounted(carregarContatos)
 }
 @media (max-width: 576px) {
   .btn-voltar .texto-btn {
-    display: none; /* Deixa apenas a seta no celular para economizar espaço */
+    display: none;
   }
   .btn-voltar {
     padding: 6px 12px;
@@ -505,7 +381,6 @@ onMounted(carregarContatos)
   border-collapse: collapse;
 }
 
-/* Esconde o cabeçalho no Mobile */
 @media (max-width: 767px) {
   .tabela-contatos thead {
     display: none;
@@ -531,7 +406,6 @@ onMounted(carregarContatos)
     font-size: 13px;
   }
 
-  /* Cria os rótulos dinâmicos na esquerda da tela */
   .tabela-contatos tbody td::before {
     content: attr(data-label);
     font-weight: bold;

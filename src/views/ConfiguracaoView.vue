@@ -1,17 +1,17 @@
 <template>
   <div class="configuracoes">
-  
+    
     <h2>Configurações do Sistema</h2>
 
     <p v-if="carregando">Carregando...</p>
 
-    <form v-else @submit.prevent="salvar">
+    <form v-else @submit.prevent="salvarConfiguracoes">
       <div
         v-for="config in configuracoes"
         :key="config.chaves"
         class="campo"
       >
-        <label>{{ rotulo(config.chaves) }}</label>
+        <label>{{ rotuloConfiguracao(config.chaves) }}</label>
         <textarea v-model="config.valor" rows="2"></textarea>
       </div>
 
@@ -27,7 +27,7 @@
  
     <h2>Cadastrar Novo Usuário</h2>
  
-    <form @submit.prevent="cadastrarUsuario">
+    <form @submit.prevent="cadastrarNovoUsuario">
       <div class="campo">
         <label>Nome</label>
         <input v-model="novoUsuario.nome" type="text" required />
@@ -73,7 +73,7 @@
           <th>Perfil</th>
           <th>Status</th>
           <th>Apagar mensagens</th>
-          <th>Ações</th> <!-- Adicionado o cabeçalho faltante para alinhar a tabela -->
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -90,14 +90,14 @@
             <button
               v-else-if="usuario.podeapagarmensagens"
               class="btn-bloquear"
-              @click="bloquearApagarMensagens(usuario)"
+              @click="bloquearApagar(usuario)"
             >
               Bloquear apagar
             </button>
             <button
               v-else
               class="btn-desbloquear"
-              @click="permitirApagarMensagens(usuario)"
+              @click="permitirApagar(usuario)"
             >
               Permitir apagar
             </button>
@@ -108,14 +108,14 @@
             <button
               v-if="usuario.ativo"
               class="btn-bloquear"
-              @click="bloquear(usuario.id)"
+              @click="bloquearConta(usuario.id)"
             >
               Bloquear conta
             </button>
             <button
               v-else
               class="btn-desbloquear"
-              @click="desbloquear(usuario.id)"
+              @click="desbloquearConta(usuario.id)"
             >
               Desbloquear conta
             </button>
@@ -131,13 +131,10 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
-import {
-  listarConfiguracoes,
-  atualizarConfiguracao
-} from '@/services/configuracaoServices.js'
-
+import { useRouter } from 'vue-router'
+import { logout } from '@/services/authServices.js'
+import { listarConfiguracoes, atualizarConfiguracao } from '@/services/configuracaoServices.js'
 import {
   listarPerfis,
   criarUsuario,
@@ -146,17 +143,22 @@ import {
   desbloquearUsuario,
   alternarPermissaoApagar
 } from '@/services/usuariosServices.js'
-import { logout } from '@/services/authServices.js'
 
 const router = useRouter()
+
+// Estados de Configurações
 const configuracoes = ref([])
 const carregando = ref(true)
 const salvando = ref(false)
 const mensagem = ref('')
 const erro = ref('')
 
+// Estados de Usuários
 const perfis = ref([])
 const usuarios = ref([])
+const cadastrando = ref(false)
+const mensagemUsuario = ref('')
+const erroUsuario = ref('')
 
 const novoUsuario = ref({
   nome: '',
@@ -164,10 +166,6 @@ const novoUsuario = ref({
   senha: '',
   perfil_id: ''
 })
- 
-const cadastrando = ref(false)
-const mensagemUsuario = ref('')
-const erroUsuario = ref('')
 
 // Desloga o ADM e manda de volta pra tela de login
 function voltarParaLogin() {
@@ -175,88 +173,8 @@ function voltarParaLogin() {
   router.push('/')
 }
 
-// Libera o usuário pra apagar mensagens
-async function permitirApagarMensagens(usuario) {
-  try {
-    await alternarPermissaoApagar(usuario.id, true)
-    await carregarUsuarios()
-  } catch (err) {
-    console.error('Erro ao permitir remoção de mensagens:', err)
-  }
-}
-
-// Bloqueia o usuário de apagar mensagens
-async function bloquearApagarMensagens(usuario) {
-  try {
-    await alternarPermissaoApagar(usuario.id, false)
-    await carregarUsuarios()
-  } catch (err) {
-    console.error('Erro ao bloquear remoção de mensagens:', err)
-  }
-}
-
-// Busca a lista de usuários cadastrados
-async function carregarUsuarios() {
-  try {
-    usuarios.value = await listarUsuarios()
-  } catch (err) {
-    console.error('Erro ao carregar usuários:', err)
-  }
-}
-
-// Bloqueia um usuário e atualiza a listinha
-async function bloquear(id) {
-  try {
-    await bloquearUsuario(id)
-    await carregarUsuarios()
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-// Desbloqueia um usuário e atualiza a listinha
-async function desbloquear(id) {
-  try {
-    await desbloquearUsuario(id)
-    await carregarUsuarios()
-  } catch (err) {
-    console.error(err)
-  }
-}
- 
-// Busca os perfis (ADM/USER)
-async function carregarPerfis() {
-  try {
-    perfis.value = await listarPerfis()
-  } catch (err) {
-    console.error('Erro ao carregar perfis:', err)
-  }
-}
- 
-// Envia o formulário de cadastro e atualiza a listagem automaticamente
-async function cadastrarUsuario() {
-  cadastrando.value = true
-  mensagemUsuario.value = ''
-  erroUsuario.value = ''
- 
-  try {
-    await criarUsuario(novoUsuario.value)
-    mensagemUsuario.value = 'Usuário cadastrado com sucesso!'
- 
-    // Limpa o formulário depois de cadastrar
-    novoUsuario.value = { nome: '', email: '', senha: '', perfil_id: '' }
-    
-    // ⚡ EXCELENTE PARA ESCALABILIDADE/REATIVIDADE: Recarrega a tabela de usuários em tempo real!
-    await carregarUsuarios()
-  } catch (err) {
-    erroUsuario.value = err.response?.data?.erro || 'Erro ao cadastrar usuário'
-  } finally {
-    cadastrando.value = false
-  }
-}
-
-// Transforma chaves técnicas em rótulos amigáveis
-function rotulo(chaves) {
+// Rótulos amigáveis para as configurações
+function rotuloConfiguracao(chaves) {
   const nomes = {
     mensagem_bom_dia: 'Mensagem de Bom Dia',
     mensagem_boa_noite: 'Mensagem de Boa Noite',
@@ -265,8 +183,8 @@ function rotulo(chaves) {
   return nomes[chaves] || chaves
 }
 
-// Carrega as configurações de mensagem
-async function carregar() {
+// Carregar Configurações
+async function carregarConfiguracoes() {
   carregando.value = true
   try {
     configuracoes.value = await listarConfiguracoes()
@@ -277,8 +195,8 @@ async function carregar() {
   }
 }
 
-// Salva as mensagens de atendimento
-async function salvar() {
+// Salvar Configurações
+async function salvarConfiguracoes() {
   salvando.value = true
   mensagem.value = ''
   erro.value = ''
@@ -295,8 +213,84 @@ async function salvar() {
   }
 }
 
+// Carregar Perfis
+async function carregarPerfis() {
+  try {
+    perfis.value = await listarPerfis()
+  } catch (err) {
+    console.error('Erro ao carregar perfis:', err)
+  }
+}
+
+// Carregar Usuários
+async function carregarUsuarios() {
+  try {
+    usuarios.value = await listarUsuarios()
+  } catch (err) {
+    console.error('Erro ao carregar usuários:', err)
+  }
+}
+
+// Cadastrar Novo Usuário
+async function cadastrarNovoUsuario() {
+  cadastrando.value = true
+  mensagemUsuario.value = ''
+  erroUsuario.value = ''
+
+  try {
+    await criarUsuario(novoUsuario.value)
+    mensagemUsuario.value = 'Usuário cadastrado com sucesso!'
+    novoUsuario.value = { nome: '', email: '', senha: '', perfil_id: '' }
+    await carregarUsuarios()
+  } catch (err) {
+    erroUsuario.value = err.response?.data?.erro || 'Erro ao cadastrar usuário'
+  } finally {
+    cadastrando.value = false
+  }
+}
+
+// Bloquear Conta
+async function bloquearConta(id) {
+  try {
+    await bloquearUsuario(id)
+    await carregarUsuarios()
+  } catch (err) {
+    console.error('Erro ao bloquear conta:', err)
+  }
+}
+
+// Desbloquear Conta
+async function desbloquearConta(id) {
+  try {
+    await desbloquearUsuario(id)
+    await carregarUsuarios()
+  } catch (err) {
+    console.error('Erro ao desbloquear conta:', err)
+  }
+}
+
+// Permitir Apagar Mensagens
+async function permitirApagar(usuario) {
+  try {
+    await alternarPermissaoApagar(usuario.id, true)
+    await carregarUsuarios()
+  } catch (err) {
+    console.error('Erro ao permitir apagar mensagens:', err)
+  }
+}
+
+// Bloquear Apagar Mensagens
+async function bloquearApagar(usuario) {
+  try {
+    await alternarPermissaoApagar(usuario.id, false)
+    await carregarUsuarios()
+  } catch (err) {
+    console.error('Erro ao bloquear apagar mensagens:', err)
+  }
+}
+
 onMounted(() => {
-  carregar()
+  carregarConfiguracoes()
   carregarPerfis()
   carregarUsuarios()
 })
@@ -304,7 +298,7 @@ onMounted(() => {
 
 <style scoped>
 .configuracoes {
-  max-width: 700px; /* Aumentado levemente para acomodar melhor a tabela larga */
+  max-width: 700px;
   margin: 32px auto;
   padding: 24px;
   background: #fff;
@@ -338,7 +332,6 @@ button {
   color: #c0392b;
 }
 
-/* Corrigido seletor de classe com ponto (.) */
 .separador {
   margin: 32px 0;
   border: none;

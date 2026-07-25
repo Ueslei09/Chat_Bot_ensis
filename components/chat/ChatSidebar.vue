@@ -1,5 +1,5 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar animate-fade-in">
     <!-- Abas de Navegação -->
     <nav class="abas">
       <button 
@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { useChatSidebar } from '@/Composables/useChatSidebar'
 
 defineProps({
   chamados: { type: Array, required: true },
@@ -93,54 +93,38 @@ defineProps({
 
 defineEmits(['trocar-aba', 'selecionar'])
 
-// Retorna a inicial do nome do cliente de forma segura
-function obterInicial(nome) {
-  if (!nome) return '?'
-  return nome.trim().charAt(0).toUpperCase()
-}
-
-// Substitui termos técnicos por legíveis
-function formatarStatus(status) {
-  if (!status) return ''
-  const mapeamento = {
-    'EM_ATENDIMENTO': 'Conversando',
-    'ABERTO': 'Aguardando',
-    'FECHADO': 'Fechado'
-  }
-  return mapeamento[status] || status
-}
-
-// Formata a última atualização para horas ou data simplificada
-function formatarData(dataString) {
-  if (!dataString) return ''
-  try {
-    const data = new Date(dataString)
-    if (isNaN(data.getTime())) return ''
-    
-    const hoje = new Date()
-    if (data.toDateString() === hoje.toDateString()) {
-      return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    }
-    return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-  } catch {
-    return ''
-  }
-}
+const {
+  obterInicial,
+  formatarStatus,
+  formatarData
+} = useChatSidebar()
 </script>
 
 <style scoped>
 .sidebar {
-  width: 320px; /* Alargado ligeiramente para caber melhor os nomes e avatars */
+  width: 100%; /* 🎯 Ocupa 100% do container pai, eliminando a sobra à direita */
+  max-width: 100%; /* Remove qualquer restrição rígida de largura no mobile */
   background: #fff;
   border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  height: 100%;
 }
+
+/* Em telas maiores (Desktop), limitamos com elegância para manter o padrão de chat */
+@media (min-width: 768px) {
+  .sidebar {
+    max-width: 340px;
+  }
+}
+
 .abas {
   display: flex;
   border-bottom: 1px solid #e2e8f0;
   background-color: #f8fafc;
 }
+
 .abas button {
   flex: 1;
   padding: 14px 4px;
@@ -151,15 +135,19 @@ function formatarData(dataString) {
   font-weight: 500;
   color: #64748b;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
+
 .abas button:hover {
   color: #1e293b;
 }
+
 .abas button.ativa {
   border-bottom: 3px solid #1a3c6e;
   font-weight: 600;
   color: #1a3c6e;
 }
+
 .lista-chamados {
   list-style: none;
   margin: 0;
@@ -167,6 +155,7 @@ function formatarData(dataString) {
   overflow-y: auto;
   flex: 1;
 }
+
 .vazio {
   padding: 32px 16px;
   color: #94a3b8;
@@ -177,6 +166,7 @@ function formatarData(dataString) {
   align-items: center;
   gap: 8px;
 }
+
 .item-chamado {
   padding: 12px 16px;
   border-bottom: 1px solid #f1f5f9;
@@ -186,9 +176,11 @@ function formatarData(dataString) {
   gap: 12px;
   transition: background-color 0.15s ease;
 }
+
 .item-chamado:hover {
   background: #f8fafc;
 }
+
 .item-chamado.selecionado {
   background: #e2e8f0;
 }
@@ -207,6 +199,7 @@ function formatarData(dataString) {
   justify-content: center;
   flex-shrink: 0;
 }
+
 .item-chamado.selecionado .avatar-mini {
   background: #1a3c6e;
 }
@@ -214,30 +207,37 @@ function formatarData(dataString) {
 /* Conteúdo interno da linha */
 .conteudo-chamado {
   flex: 1;
-  min-width: 0; /* Evita quebra de layout com textos longos */
+  min-width: 0; 
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
 .linha-topo, .linha-base {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .nome-cliente {
   font-size: 14px;
   color: #1e293b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  margin-right: 8px;
 }
+
 .item-chamado.nao-lido .nome-cliente {
   font-weight: 700;
 }
+
 .data-ultimo {
   font-size: 11px;
   color: #94a3b8;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .detalhe {
@@ -246,11 +246,13 @@ function formatarData(dataString) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  margin-right: 8px;
 }
 
 /* Notificação não lida */
 .badge-notificacao {
-  background-color: #25d366; /* Verde clássico de notificação */
+  background-color: #25d366; 
   color: #fff;
   font-size: 10px;
   font-weight: bold;
@@ -261,6 +263,7 @@ function formatarData(dataString) {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 /* Status visuais amigáveis */
@@ -269,13 +272,17 @@ function formatarData(dataString) {
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 4px;
+  flex-shrink: 0;
 }
+
 .status-badge.aberto {
   color: #d97706;
 }
+
 .status-badge.em_atendimento {
   color: #1a3c6e;
 }
+
 .status-badge.fechado {
   color: #64748b;
 }
@@ -285,5 +292,14 @@ function formatarData(dataString) {
   width: 1.2rem;
   height: 1.2rem;
   border-width: 0.15em;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 </style>

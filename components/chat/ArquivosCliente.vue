@@ -30,50 +30,41 @@
 </template>
 
 <script setup>
+import { useArquivosCliente } from '@/composables/useArquivosCliente'
 import { urlArquivo } from '@/services/mensagensServices.js'
 
 defineProps({
   arquivos: { type: Array, default: () => [] }
 })
 
-// ⚡ MAPEAMENTO ESTENDIDO (Escalabilidade & UX):
-// Garante o ícone semântico ideal para os principais formatos utilizados
-function iconePorTipo(mime) {
-  if (!mime) return 'bi bi-file-earmark'
-  
-  const mimeLower = mime.toLowerCase()
-  if (mimeLower.startsWith('image/')) return 'bi bi-image'
-  if (mimeLower.startsWith('audio/')) return 'bi bi-music-note'
-  if (mimeLower.startsWith('video/')) return 'bi bi-play-btn'
-  if (mimeLower.includes('pdf')) return 'bi bi-file-earmark-pdf'
-  if (mimeLower.includes('zip') || mimeLower.includes('rar')) return 'bi bi-file-zip'
-  if (mimeLower.includes('word') || mimeLower.includes('officedocument.word')) return 'bi bi-file-earmark-word'
-  if (mimeLower.includes('excel') || mimeLower.includes('officedocument.spreadsheet')) return 'bi bi-file-earmark-excel'
-  
-  return 'bi bi-file-earmark-text' // Fallback para documentos genéricos
-}
+const { iconePorTipo } = useArquivosCliente()
 </script>
 
 <style scoped>
 .arquivos {
-  padding: 16px;
-  border-bottom: 1px solid #eee;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  width: 100%;
 }
+
 h6 {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #1a3c6e; /* Unificado com o padrão de títulos do sistema */
+  color: #1a3c6e;
   margin-top: 0;
   margin-bottom: 14px;
   font-weight: 600;
 }
+
 .vazio {
   font-size: 12px;
   color: #94a3b8;
   margin: 0;
 }
+
 .lista {
   list-style: none;
   padding: 0;
@@ -82,27 +73,34 @@ h6 {
   flex-direction: column;
   gap: 10px;
 }
+
 .item-arquivo {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
 }
+
 .icone-arquivo {
   font-size: 16px;
   color: #1a3c6e;
   flex-shrink: 0;
 }
+
 .link-arquivo {
   color: #475569;
   text-decoration: none;
   font-weight: 500;
   overflow: hidden;
-  text-overflow: ellipsis; /* Corta nomes longos com reticências (...) elegantes */
+  text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  min-width: 0; /* Essencial para o truncamento de texto flexbox funcionar no mobile */
   transition: color 0.15s ease;
 }
+
 .link-arquivo:hover {
   color: #1a3c6e;
   text-decoration: underline;

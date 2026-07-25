@@ -4,9 +4,9 @@
 
     <div v-if="!editando" class="dados-cliente">
       <h5 class="nome">{{ cliente.cliente_nome || 'Sem Nome' }}</h5>
-      <p class="linha" title="Empresa"><i class="bi bi-building"></i> {{ cliente.empresa || '—' }}</p>
-      <p class="linha" title="Telefone"><i class="bi bi-telephone"></i> {{ cliente.telefone || '—' }}</p>
-      <p class="linha" title="E-mail"><i class="bi bi-envelope"></i> {{ cliente.email || '—' }}</p>
+      <p class="linha" title="Empresa"><i class="bi bi-building"></i> <span>{{ cliente.empresa || '—' }}</span></p>
+      <p class="linha" title="Telefone"><i class="bi bi-telephone"></i> <span>{{ cliente.telefone || '—' }}</span></p>
+      <p class="linha" title="E-mail"><i class="bi bi-envelope"></i> <span class="email-texto">{{ cliente.email || '—' }}</span></p>
 
       <button type="button" class="btn btn-sm btn-outline-primary mt-2" @click="iniciarEdicao">
         <i class="bi bi-pencil"></i> Editar cliente
@@ -59,8 +59,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { atualizarContato } from '@/services/contatoServices.js'
+import { useClienteCard } from '@/composables/useClienteCard'
 
 const props = defineProps({
   cliente: { type: Object, required: true }
@@ -68,61 +67,15 @@ const props = defineProps({
 
 const emit = defineEmits(['atualizado'])
 
-const editando = ref(false)
-const salvando = ref(false)
-const erro = ref('')
-const form = ref({ nome: '', empresa: '', telefone: '', email: '' })
-
-// Extrai a inicial do nome com segurança
-const inicial = computed(() => {
-  const nome = props.cliente.cliente_nome || props.cliente.nome || '?'
-  return nome.charAt(0).toUpperCase()
-})
-
-function iniciarEdicao() {
-  erro.value = ''
-  // Mapeia os dados do objeto 'cliente' para o formulário padrão esperado pelos 'contatoServices'
-  form.value = {
-    nome: props.cliente.cliente_nome || props.cliente.nome || '',
-    empresa: props.cliente.empresa || '',
-    telefone: props.cliente.telefone || '',
-    email: props.cliente.email || '',
-    // Garante que preserva campos como conexão para a API não perder a referência do canal
-    conexao: props.cliente.conexao || 'whatsapp',
-    eh_grupo: props.cliente.eh_grupo || false
-  }
-  editando.value = true
-}
-
-async function salvar() {
-  // Validação preventiva simples
-  if (!form.value.nome.trim() || !form.value.telefone.trim()) {
-    erro.value = 'Nome e Telefone são campos obrigatórios.'
-    return
-  }
-
-  // Encontra o ID correto do cliente, independente do mapeamento da query (cliente_id ou id)
-  const idContato = props.cliente.cliente_id || props.cliente.id
-  if (!idContato) {
-    erro.value = 'ID do contato não encontrado.'
-    return
-  }
-
-  salvando.value = true
-  erro.value = ''
-
-  try {
-    // Atualiza via camada de serviço dedicada do Axios
-    await atualizarContato(idContato, form.value)
-    editando.value = false
-    emit('atualizado') // Notifica o componente pai (ex: ChatDrawer) para recarregar os dados na tela
-  } catch (err) {
-    console.error('Erro ao salvar dados do cliente:', err)
-    erro.value = err.response?.data?.erro || 'Não foi possível atualizar as informações.'
-  } finally {
-    salvando.value = false
-  }
-}
+const {
+  editando,
+  salvando,
+  erro,
+  form,
+  inicial,
+  iniciarEdicao,
+  salvar
+} = useClienteCard(props, emit)
 </script>
 
 <style scoped>
@@ -134,7 +87,10 @@ async function salvar() {
   padding: 24px 16px;
   border-bottom: 1px solid #edf2f7;
   background-color: #fff;
+  width: 100%;
+  box-sizing: border-box;
 }
+
 .avatar {
   width: 64px;
   height: 64px;
@@ -148,15 +104,21 @@ async function salvar() {
   justify-content: center;
   margin-bottom: 16px;
   box-shadow: 0 4px 6px rgba(26, 60, 110, 0.2);
+  flex-shrink: 0;
 }
+
 .dados-cliente {
   width: 100%;
 }
+
 .nome {
   margin-bottom: 12px;
   color: #2d3748;
   font-weight: 600;
+  font-size: 1.1rem;
+  word-break: break-word;
 }
+
 .linha {
   font-size: 13px;
   color: #4a5568;
@@ -165,14 +127,26 @@ async function salvar() {
   align-items: center;
   gap: 8px;
   justify-content: center;
+  text-align: left;
 }
+
+.linha span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
 .linha i {
   color: #1a3c6e;
+  flex-shrink: 0;
 }
+
 .form-edicao {
   width: 100%;
   text-align: left;
 }
+
 .rotulo-campo {
   font-size: 11px;
   font-weight: 600;
@@ -181,10 +155,12 @@ async function salvar() {
   letter-spacing: 0.3px;
   margin-bottom: 2px;
 }
+
 .erro-mensagem {
   color: #e53e3e;
   font-size: 12px;
   margin-top: 8px;
   margin-bottom: 0;
+  word-break: break-word;
 }
 </style>

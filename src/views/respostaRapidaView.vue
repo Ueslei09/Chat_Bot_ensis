@@ -115,99 +115,23 @@
 </template>
 
 <script setup>
-/* Mantido todo o seu bloco <script setup> original perfeitamente intacto */
-import { ref, onMounted, onUnmounted } from 'vue'
-import {
-  listarRespostasRapidas,
-  criarRespostaRapida,
-  atualizarRespostaRapida,
-  excluirRespostaRapida
-} from '@/services/respostaRapidasServices.js'
+import { useRespostasRapidas } from '@/Composables/useRespostasRapidas'
 
-const respostas = ref([])
-const carregando = ref(false)
-const busca = ref('')
-
-const modalAberto = ref(false)
-const editandoId = ref(null)
-const erro = ref('')
-const form = ref({ nome: '', texto: '', departamento: '', categoria: '' })
-
-let timeoutBusca = null
-
-async function carregar() {
-  carregando.value = true
-  try {
-    respostas.value = await listarRespostasRapidas(busca.value)
-  } catch (err) {
-    console.error('Erro ao carregar respostas rápidas:', err)
-  } finally {
-    carregando.value = false
-  }
-}
-
-function buscarComDebounce() {
-  if (timeoutBusca) clearTimeout(timeoutBusca)
-  timeoutBusca = setTimeout(() => { carregar() }, 300);
-}
-
-function abrirModalNova() {
-  editandoId.value = null
-  form.value = { nome: '', texto: '', departamento: '', categoria: '' }
-  erro.value = ''
-  modalAberto.value = true
-}
-
-function editar(resposta) {
-  editandoId.value = resposta.id
-  form.value = {
-    nome: resposta.nome,
-    texto: resposta.texto,
-    departamento: resposta.departamento || '',
-    categoria: resposta.categoria || ''
-  }
-  erro.value = ''
-  modalAberto.value = true
-}
-
-function fecharModal() {
-  modalAberto.value = false
-}
-
-async function salvar() {
-  erro.value = ''
-  if (!form.value.nome.trim() || !form.value.texto.trim()) {
-    erro.value = 'Os campos Nome e Texto são obrigatórios.'
-    return
-  }
-  try {
-    if (editandoId.value) {
-      await atualizarRespostaRapida(editandoId.value, form.value)
-    } else {
-      await criarRespostaRapida(form.value)
-    }
-    fecharModal()
-    await carregar()
-  } catch (err) {
-    erro.value = err.response?.data?.erro || 'Erro ao salvar resposta rápida'
-  }
-}
-
-async function excluir(id) {
-  if (!confirm('Tem certeza que deseja excluir esta resposta rápida?')) return
-  try {
-    await excluirRespostaRapida(id)
-    await carregar()
-  } catch (err) {
-    console.error('Erro ao excluir resposta rápida:', err)
-  }
-}
-
-onMounted(carregar)
-
-onUnmounted(() => {
-  if (timeoutBusca) clearTimeout(timeoutBusca)
-})
+const {
+  respostas,
+  carregando,
+  busca,
+  modalAberto,
+  editandoId,
+  erro,
+  form,
+  buscarComDebounce,
+  abrirModalNova,
+  editar,
+  fecharModal,
+  salvar,
+  excluir
+} = useRespostasRapidas()
 </script>
 
 <style scoped>
@@ -287,7 +211,7 @@ onUnmounted(() => {
 
 @media (max-width: 767px) {
   .tabela-respostas thead {
-    display: none; /* Oculta a estrutura rígida horizontal no celular */
+    display: none;
   }
   
   .linha-resposta-card {
@@ -310,7 +234,6 @@ onUnmounted(() => {
     font-size: 13px;
   }
 
-  /* Gera os rótulos dinâmicos à esquerda do valor no mobile */
   .tabela-respostas tbody td::before {
     content: attr(data-label);
     font-weight: bold;
@@ -326,7 +249,7 @@ onUnmounted(() => {
 
   .texto-resumo {
     max-width: 100% !important;
-    white-space: normal !important; /* Permite que o texto quebre linhas de forma legível no card */
+    white-space: normal !important;
     text-align: right;
     color: #475569;
   }

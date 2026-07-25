@@ -1,0 +1,13 @@
+/* src/main.css */
+:root {
+  --primary-color: #1a3c6e;
+  --primary-hover: #11294a;
+  --text-color: #475569;
+  --error-color: #dc2626;
+  --border-color: #cbd5e1;
+  --bg-card: #ffffff;
+  --radius-base: 8px;
+  --radius-box: 12px;
+}
+
+/* O restante do seu CSS global existente continua abaixo... */
