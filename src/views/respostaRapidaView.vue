@@ -140,7 +140,10 @@ const {
   max-width: 1000px;
   margin: 16px auto;
   padding: 16px;
+  box-sizing: border-box;
+  width: 100%;
 }
+
 @media (min-width: 768px) {
   .respostas {
     margin: 32px auto;
@@ -154,11 +157,13 @@ const {
   gap: 12px;
   margin-bottom: 20px;
 }
+
 .cabecalho h2 {
   font-size: 22px;
   margin: 0;
   color: #1e293b;
 }
+
 @media (min-width: 768px) {
   .cabecalho {
     flex-direction: row;
@@ -169,9 +174,18 @@ const {
 
 .busca-acoes {
   display: flex;
+  flex-direction: column;
   gap: 10px;
   width: 100%;
+  box-sizing: border-box;
 }
+
+@media (min-width: 576px) {
+  .busca-acoes {
+    flex-direction: row;
+  }
+}
+
 @media (min-width: 768px) {
   .busca-acoes {
     width: auto;
@@ -184,7 +198,16 @@ const {
   border: 1px solid #cbd5e1;
   border-radius: 20px;
   font-size: 14px;
+  outline: none;
+  background: #fff;
+  box-sizing: border-box;
+  width: 100%;
 }
+
+.input-busca:focus {
+  border-color: #1a3c6e;
+}
+
 @media (min-width: 768px) {
   .input-busca {
     min-width: 260px;
@@ -201,6 +224,20 @@ const {
   font-weight: bold;
   font-size: 13px;
   white-space: nowrap;
+  box-sizing: border-box;
+  width: 100%;
+  text-align: center;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-nova:hover {
+  background-color: #11294a;
+}
+
+@media (min-width: 576px) {
+  .btn-nova {
+    width: auto;
+  }
 }
 
 /* ---------- TABELA FLUIDA / COMPORTAMENTO EM CARDS (MOBILE) ---------- */
@@ -219,19 +256,23 @@ const {
     flex-direction: column;
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 14px;
     margin-bottom: 12px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    box-sizing: border-box;
+    width: 100%;
   }
 
   .tabela-respostas tbody td {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0 !important;
+    padding: 8px 0 !important;
     border-bottom: none !important;
     font-size: 13px;
+    box-sizing: border-box;
+    width: 100%;
   }
 
   .tabela-respostas tbody td::before {
@@ -240,35 +281,65 @@ const {
     color: #64748b;
     font-size: 12px;
     text-transform: uppercase;
+    flex-shrink: 0;
+    margin-right: 12px;
   }
 
   .nome-texto {
     font-size: 15px;
     color: #1a3c6e;
+    font-weight: 600;
   }
 
   .texto-resumo {
-    max-width: 100% !important;
+    max-width: 60% !important;
     white-space: normal !important;
     text-align: right;
     color: #475569;
+    word-break: break-word;
   }
 
+  /* 🌟 CORREÇÃO CRUCIAL DOS BOTÕES NO MOBILE (Alinhamento simétrico e limpo) */
   .acoes-tabela {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    width: 100%;
-    margin-top: 10px;
-    border-top: 1px dashed #e2e8f0;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-top: 12px !important;
+    border-top: 1px dashed #e2e8f0 !important;
     padding-top: 12px !important;
+    box-sizing: border-box !important;
   }
   
   .btn-editar, .btn-excluir {
-    padding: 10px !important;
+    flex: 1 !important;
+    height: 38px !important;
+    padding: 0 8px !important;
     font-size: 13px !important;
-    text-align: center;
-    font-weight: bold;
+    text-align: center !important;
+    font-weight: bold !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    border: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+  }
+  
+  
+
+  .btn-editar {
+    background: #e0ecff !important;
+    color: #1a3c6e !important;
+  }
+
+  .btn-excluir {
+    background: #fdecea !important;
+    color: #c0392b !important;
   }
 }
 
@@ -312,19 +383,31 @@ const {
     color: #1a3c6e;
     border: none;
     padding: 6px 12px;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 12px;
+    font-weight: 500;
+    transition: background-color 0.15s ease;
   }
   
+  .btn-editar:hover {
+    background: #cce0ff;
+  }
+
   .btn-excluir {
     background: #fdecea;
     color: #c0392b;
     border: none;
     padding: 6px 12px;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 12px;
+    font-weight: 500;
+    transition: background-color 0.15s ease;
+  }
+
+  .btn-excluir:hover {
+    background: #fadbd8;
   }
 }
 
@@ -341,11 +424,13 @@ const {
   gap: 6px;
   margin-bottom: 14px;
 }
+
 .campo-form label {
   font-size: 13px;
   color: #475569;
   font-weight: 600;
 }
+
 .campo-form input,
 .campo-form textarea {
   padding: 10px 12px;
@@ -353,7 +438,10 @@ const {
   border-radius: 6px;
   font-family: inherit;
   font-size: 14px;
+  box-sizing: border-box;
+  width: 100%;
 }
+
 .campo-form input:focus,
 .campo-form textarea:focus {
   outline: none;
@@ -369,15 +457,25 @@ const {
   justify-content: center;
   z-index: 1050;
   padding: 16px;
+  box-sizing: border-box;
 }
+
 .modal-box {
   background: #fff;
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px;
   width: 100%;
   max-width: 440px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  box-sizing: border-box;
 }
+
+@media (min-width: 768px) {
+  .modal-box {
+    padding: 24px;
+  }
+}
+
 .modal-box h3 {
   margin: 0 0 16px;
   color: #1e293b;
@@ -386,10 +484,18 @@ const {
 
 .modal-botoes {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column-reverse;
   gap: 10px;
   margin-top: 20px;
 }
+
+@media (min-width: 480px) {
+  .modal-botoes {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
 .btn-cancelar {
   background: #e2e8f0;
   border: none;
@@ -398,7 +504,17 @@ const {
   cursor: pointer;
   color: #475569;
   font-weight: 500;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
 }
+
+@media (min-width: 480px) {
+  .btn-cancelar {
+    width: auto;
+  }
+}
+
 .btn-confirmar {
   background: #1a3c6e;
   color: #fff;
@@ -407,13 +523,24 @@ const {
   border-radius: 20px;
   cursor: pointer;
   font-weight: bold;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
 }
+
+@media (min-width: 480px) {
+  .btn-confirmar {
+    width: auto;
+  }
+}
+
 .erro {
   color: #dc2626;
   font-size: 13px;
   margin: 8px 0 0;
   font-weight: 500;
 }
+
 .badge-categoria {
   background: #eff6ff;
   color: #1e40af;
@@ -422,7 +549,9 @@ const {
   border-radius: 10px;
   font-weight: bold;
   border: 1px solid #dbeafe;
+  display: inline-block;
 }
+
 .text-right { text-align: right !important; }
 .text-center { text-align: center; }
 .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }

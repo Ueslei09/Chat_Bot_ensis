@@ -389,27 +389,50 @@ export function useChamados() {
     await carregarDetalhes()
   }
 
-  async function carregarMaisMensagens() {
+async function carregarMaisMensagens() {
     if (carregandoMensagens.value) return
     try {
       carregandoMensagens.value = true
       const limite = 20
       const primeiraMensagemId = mensagens.value[0]?.id
+      
+      // Busca o lote de mensagens anteriores
       const historicoAntigo = await listarMensagens(chamadoSelecionado.value.id, { limite, antes_de: primeiraMensagemId })
 
       if (historicoAntigo && historicoAntigo.length > 0) {
         const alturaAnterior = elementoScroll ? elementoScroll.scrollHeight : 0
-        mensagens.value = [...historicoAntigo, ...mensagens.value]
-        nextTick(() => {
-          if (elementoScroll) elementoScroll.scrollTop = elementoScroll.scrollHeight - alturaAnterior
-        })
+        
+        // Cria um Set com os IDs que já estão na tela atualmente para evitar duplicidade
+        const idsExistentes = new Set(mensagens.value.map(m => String(m.id)))
+        
+        // Filtra o histórico antigo para trazer apenas o que não está na tela
+        const novasUnicas = historicoAntigo.filter(m => !idsExistentes.has(String(m.id)))
+
+        if (novasUnicas.length > 0) {
+          // Como a API costuma mandar o lote antigo invertido, invertemos ele para respeitar a cronologia correta no topo,
+          // ou simplesmente inserimos no topo. Se a ordem vier invertida do backend, use: .reverse()
+          const loteParaInserir = [...novasUnicas].reverse()
+
+          // Adiciona estritamente no topo da lista atual
+          mensagens.value = [...loteParaInserir, ...mensagens.value]
+          
+          nextTick(() => {
+            if (elementoScroll) {
+              elementoScroll.scrollTop = elementoScroll.scrollHeight - alturaAnterior
+            }
+          })
+        } else {
+          alert("Todas as mensagens já foram carregadas!")
+        }
       } else {
         alert("Todas as mensagens já foram carregadas!")
       }
-    } catch (err) { console.error("Erro ao carregar mais histórico:", err) } 
-    finally { carregandoMensagens.value = false }
+    } catch (err) { 
+      console.error("Erro ao carregar mais histórico:", err) 
+    } finally { 
+      carregandoMensagens.value = false 
+    }
   }
-
   async function apagar(mensagemId) {
     try {
       if (!confirm('Deseja realmente apagar esta mensagem?')) return;
