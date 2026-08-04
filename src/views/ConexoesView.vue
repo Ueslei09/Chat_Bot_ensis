@@ -1,82 +1,160 @@
 <template>
-  <div class="conexoes animate-fade-in">
+  <div class="container py-4 animate-fade-in" style="max-width: 1100px;">
 
-    <div class="cabecalho">
-      <h2>Conexões</h2>
-      <div class="busca-filtros">
+    <!-- Cabeçalho -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div>
+        <h2 class="fw-bold text-dark mb-1">Conexões</h2>
+      </div>
+      <div class="d-flex align-items-center gap-2">
         <input 
           v-model="busca" 
           type="text" 
           placeholder="Pesquisar por nome..." 
-          class="input-busca"
+          class="form-control form-control-sm"
+          style="min-width: 240px;"
         />
-        <button class="btn-filtros">▽ Filtros</button>
+        <button class="btn btn-outline-secondary btn-sm text-nowrap">▽ Filtros</button>
+        <button 
+          @click="abrirModalCriar" 
+          class="btn btn-primary btn-sm d-flex align-items-center gap-1 text-nowrap"
+        >
+          <span>+</span> Nova Conexão
+        </button>
       </div>
     </div>
 
     <!-- Abas: Ativas / Arquivadas -->
-    <nav class="abas">
-      <button
-        :class="{ ativa: abaAtual === 'ativas' }"
-        @click="trocarAba('ativas')"
-      >
-        Ativas <span class="contagem">{{ conexoesFiltradas.length }}</span>
-      </button>
-      <button
-        :class="{ ativa: abaAtual === 'arquivadas' }"
-        @click="trocarAba('arquivadas')"
-      >
-        Arquivadas <span class="contagem">{{ arquivadasCount }}</span>
-      </button>
-    </nav>
+    <ul class="nav nav-tabs mb-4">
+      <li class="nav-item">
+        <button
+          class="nav-link"
+          :class="{ 'active fw-bold text-primary': abaAtual === 'ativas', 'text-muted': abaAtual !== 'ativas' }"
+          @click="trocarAba('ativas')"
+        >
+          Ativas <span class="badge bg-secondary-subtle text-dark border ms-1">{{ conexoesFiltradas.length }}</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button
+          class="nav-link"
+          :class="{ 'active fw-bold text-primary': abaAtual === 'arquivadas', 'text-muted': abaAtual !== 'arquivadas' }"
+          @click="trocarAba('arquivadas')"
+        >
+          Arquivadas <span class="badge bg-secondary-subtle text-dark border ms-1">{{ arquivadasCount }}</span>
+        </button>
+      </li>
+    </ul>
 
-    <!-- Lista de conexões -->
-    <div v-if="carregando" class="vazio">Carregando dados...</div>
+    <!-- Estado de carregamento ou vazio -->
+    <div v-if="carregando" class="text-center text-muted py-5">Carregando dados...</div>
 
-    <div v-else-if="conexoesFiltradas.length === 0" class="vazio">
-      <p>Nenhuma conexão {{ abaAtual === 'ativas' ? 'ativa' : 'arquivada' }} encontrada.</p>
-      <p class="dica">
-        Essa lista será preenchida automaticamente quando a API do WhatsApp estiver conectada.
-      </p>
+    <div v-else-if="conexoesFiltradas.length === 0" class="text-center text-muted py-5">
+      <p class="mb-1">Nenhuma conexão {{ abaAtual === 'ativas' ? 'ativa' : 'arquivada' }} encontrada.</p>
+      <small class="text-muted opacity-75">Essa lista será preenchida automaticamente quando a API do WhatsApp estiver conectada.</small>
     </div>
 
-    <!-- Grid de Conexões Responsivo -->
-    <div v-else class="grid-conexoes">
-      <div v-for="conexao in conexoesFiltradas" :key="conexao.id" class="card-conexao">
-        <div class="topo-card">
-          <span class="icone" :class="conexao.tipo">
-            {{ iconePorTipo(conexao.tipo) }}
-          </span>
-          <div class="info-principal-card">
-            <strong class="nome-conexao">{{ conexao.nome }}</strong>
-            <div class="tipo-label">{{ rotuloTipo(conexao.tipo) }}</div>
+    <!-- Grid de Conexões Responsivo com Bootstrap Cards -->
+    <div v-else class="row g-3">
+      <div v-for="conexao in conexoesFiltradas" :key="conexao.id" class="col-12 col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm p-3 h-100 rounded-4 bg-white transition-card">
+          
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center fs-5 fw-bold" 
+                 :class="conexao.tipo === 'whatsapp' ? 'bg-success-subtle text-success' : 'bg-light text-secondary'"
+                 style="width: 48px; height: 48px; flex-shrink: 0;">
+              {{ iconePorTipo(conexao.tipo) }}
+            </div>
+            <div class="overflow-hidden">
+              <h6 class="fw-bold text-dark mb-0 text-truncate">{{ conexao.nome }}</h6>
+              <small class="text-muted">{{ rotuloTipo(conexao.tipo) }}</small>
+            </div>
           </div>
-        </div>
 
-        <div class="linha-info">
-          <span class="icone-mini">👤</span> 
-          <span class="texto-info">{{ conexao.numero || '-' }}</span>
-        </div>
-        <div class="linha-info">
-          <span class="icone-mini">🏢</span> 
-          <span class="texto-info">{{ conexao.departamento || '-' }}</span>
-        </div>
+          <div class="small text-secondary mb-2 d-flex align-items-center gap-2">
+            <span>👤</span> <span class="text-truncate font-monospace">{{ conexao.numero || '-' }}</span>
+          </div>
+          <div class="small text-secondary mb-3 d-flex align-items-center gap-2">
+            <span>🏢</span> <span class="text-truncate">{{ conexao.departamento || '-' }}</span>
+          </div>
 
-        <div class="wrapper-status">
-          <span class="status-badge" :class="conexao.status">
-            ● {{ conexao.status === 'conectado' ? 'Conectado' : 'Desconectado' }}
-          </span>
+          <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+            <span class="badge" :class="conexao.status === 'conectado' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
+              ● {{ conexao.status === 'conectado' ? 'Conectado' : 'Desconectado' }}
+            </span>
+
+            <button 
+              v-if="conexao.status !== 'conectado'" 
+              @click="abrirParaReconectar(conexao)" 
+              class="btn btn-outline-success btn-sm py-0 px-2 fw-semibold"
+              style="font-size: 0.75rem;"
+            >
+              🔄 Reconectar
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
 
-    <p class="rodape">Mostrando {{ conexoesFiltradas.length }} resultados</p>
+    <div class="mt-4 text-muted small">
+      Mostrando {{ conexoesFiltradas.length }} resultados
+    </div>
+
+    <!-- MODAL DE QR CODE / NOVA CONEXÃO -->
+    <div v-if="modalAberto" class="modal-backdrop-custom d-flex align-items-center justify-content-center">
+      <div class="card border-0 shadow-lg p-4 rounded-4 bg-white w-100" style="max-width: 400px;">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold m-0">Conectar WhatsApp</h5>
+          <button @click="fecharModal" class="btn-close" aria-label="Close"></button>
+        </div>
+
+        <!-- Se estiver carregando o QR Code -->
+        <div v-if="carregandoQR" class="text-center py-4">
+          <div class="spinner-border text-success mb-2" role="status"></div>
+          <p class="text-muted small">Gerando QR Code...</p>
+        </div>
+
+        <!-- Se o QR Code já foi gerado e carregado -->
+        <div v-else-if="qrCode" class="text-center">
+          <p class="small text-muted mb-2">Abra o WhatsApp no seu celular > Aparelhos Conectados > Conectar Aparelho</p>
+          <div class="bg-light p-3 rounded border d-inline-block mb-3">
+            <img :src="qrCode" alt="QR Code" class="img-fluid" style="width: 220px; height: 220px;" />
+          </div>
+          <p class="text-warning small fw-bold mb-3">Aguardando leitura do QR Code...</p>
+          <button @click="fecharModal" class="btn btn-outline-secondary btn-sm w-100">
+            Concluir / Fechar
+          </button>
+        </div>
+
+        <!-- Passo Inicial caso abra manualmente (Nova Conexão) sem instância preenchida -->
+        <div v-else>
+          <div class="mb-3">
+            <label class="form-label small text-muted">Nome da Instância</label>
+            <input 
+              v-model="nomeInstancia" 
+              type="text" 
+              placeholder="Ex: Vendas-Matriz" 
+              class="form-control"
+            />
+          </div>
+          <button 
+            @click="gerarQRCode" 
+            class="container-fluid btn btn-success py-2 fw-semibold"
+          >
+            Gerar QR Code
+          </button>
+        </div>
+
+      </div>
+    </div>
 
   </div>
 </template>
 
 <script setup>
-import { useConexoes } from '@/composables/useConexoes'
+import { useConexoes } from '@/Composables/useConexoes'
 
 const {
   abaAtual,
@@ -86,249 +164,41 @@ const {
   arquivadasCount,
   trocarAba,
   iconePorTipo,
-  rotuloTipo
+  rotuloTipo,
+  modalAberto,
+  nomeInstancia,
+  qrCode,
+  carregandoQR,
+  abrirModalCriar,
+  fecharModal,
+  gerarQRCode,
+  abrirParaReconectar
 } = useConexoes()
 </script>
 
 <style scoped>
-/* ---------- ESTRUTURA BASE ---------- */
-.conexoes {
-  max-width: 1000px;
-  margin: 16px auto;
-  padding: 16px;
-}
-@media (min-width: 768px) {
-  .conexoes {
-    margin: 32px auto;
-    padding: 24px;
-  }
-}
-
-.cabecalho {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.cabecalho h2 {
-  font-size: 22px;
-  margin: 0;
-  color: #1e293b;
-}
-@media (min-width: 768px) {
-  .cabecalho {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-}
-
-.busca-filtros {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-}
-@media (min-width: 768px) {
-  .busca-filtros {
-    width: auto;
-  }
-}
-
-.input-busca {
-  flex: 1;
-  padding: 10px 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 20px;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.input-busca:focus {
-  border-color: #1a3c6e;
-}
-@media (min-width: 768px) {
-  .input-busca {
-    min-width: 240px;
-  }
-}
-
-.btn-filtros {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 20px;
-  padding: 10px 18px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  color: #475569;
-  white-space: nowrap;
-  transition: background 0.2s;
-}
-.btn-filtros:hover {
-  background: #f8fafc;
-}
-
-/* ---------- NAV ABAS RESPONSIVA ---------- */
-.abas {
-  display: flex;
-  gap: 20px;
-  border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 20px;
-  overflow-x: auto;
-  white-space: nowrap;
-}
-.abas button {
-  background: none;
-  border: none;
-  padding: 12px 4px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-.abas button.ativa {
-  color: #1a3c6e;
-  font-weight: bold;
-  border-bottom: 2px solid #1a3c6e;
-}
-.contagem {
-  background: #f1f5f9;
-  color: #475569;
-  border-radius: 10px;
-  padding: 1px 8px;
-  font-size: 11px;
-  font-weight: bold;
-}
-
-.vazio {
-  text-align: center;
-  color: #64748b;
-  padding: 40px 16px;
-}
-.dica {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-top: 8px;
-}
-
-/* ---------- GRID DE CARDS RESPONSIVO ---------- */
-.grid-conexoes {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-@media (min-width: 576px) {
-  .grid-conexoes {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  }
-}
-
-.card-conexao {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.card-conexao:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
-}
-
-.topo-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.info-principal-card {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.nome-conexao {
-  font-size: 15px;
-  color: #1e293b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.icone {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  background: #f1f5f9;
-  flex-shrink: 0;
-}
-.icone.whatsapp {
-  background: #e8f5e9;
-}
-.tipo-label {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.linha-info {
-  font-size: 13px;
-  color: #475569;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.texto-info {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.icone-mini {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.wrapper-status {
-  margin-top: auto;
-  padding-top: 10px;
-}
-.status-badge {
-  display: inline-flex;
-  font-size: 12px;
-  padding: 3px 12px;
-  border-radius: 20px;
-  font-weight: bold;
-}
-.status-badge.conectado {
-  background: #dcf8e8;
-  color: #16a34a;
-}
-.status-badge.desconectado {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.rodape {
-  margin-top: 20px;
-  font-size: 13px;
-  color: #64748b;
-}
-
 .animate-fade-in {
-  animation: fadeIn 0.4s ease-out;
+  animation: fadeIn 0.3s ease-in-out;
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+.transition-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.transition-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+}
+.modal-backdrop-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+  backdrop-filter: blur(2px);
 }
 </style>

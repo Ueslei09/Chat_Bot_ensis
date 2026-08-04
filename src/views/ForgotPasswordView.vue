@@ -2,35 +2,37 @@
   <div class="login-page" :style="{ backgroundImage: `url(${bgImage})` }">
     <div class="overlay"></div>
 
-    <div class="login-box animate-fade-in">
-      <h3 class="mb-3 text-center text-dark">Recuperar Senha</h3>
-      <p class="text-muted text-center mb-4" style="font-size: 13px;">
+    <div class="login-box shadow-lg rounded-4 border-0 p-4 p-sm-5 animate-fade-in">
+      <h3 class="mb-2 text-center text-dark fw-bold">Recuperar Senha</h3>
+      <p class="text-muted text-center mb-4 small">
         Insira o seu e-mail cadastrado para receber um link de redefinição.
       </p>
 
       <form @submit.prevent="solicitarRecuperacao">
         <div class="mb-3">
-          <label class="form-label">E-mail de Cadastro</label>
+          <label class="form-label small fw-bold text-muted">E-mail de Cadastro</label>
           <input
             v-model="email"
             type="email"
-            class="form-control"
+            class="form-control form-control-sm py-2"
             placeholder="exemplo@empresa.com"
             required
           />
         </div>
 
-        <p v-if="mensagemErro" class="erro">{{ mensagemErro }}</p>
-        <p v-if="mensagemSucesso" class="sucesso">{{ mensagemSucesso }}</p>
+        <div v-if="mensagemErro" class="alert alert-danger py-2 small" role="alert">{{ mensagemErro }}</div>
+        <div v-if="mensagemSucesso" class="alert alert-success py-2 small" role="alert">{{ mensagemSucesso }}</div>
 
-        <button type="submit" class="btn btn-primary w-100 mb-3 py-2.5" :disabled="carregando">
+        <button type="submit" class="btn btn-primary w-100 mb-3 py-2 fw-bold shadow-sm" :disabled="carregando">
           {{ carregando ? 'Processando...' : 'Enviar Link' }}
         </button>
       </form>
 
-      <router-link to="/login" class="link-voltar">
-        Voltar para o Login
-      </router-link>
+      <div class="text-center">
+        <router-link to="/login" class="link-voltar small text-decoration-none fw-semibold">
+          Voltar para o Login
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -58,7 +60,7 @@ const {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px; /* 🎯 Garante respiro nas bordas laterais em telas pequenas (mobile) */
+  padding: 20px;
 }
 
 .overlay {
@@ -71,77 +73,21 @@ const {
   position: relative;
   z-index: 1;
   background: #ffffff;
-  padding: 24px; /* Padding reduzido no mobile para não estourar a tela */
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   transition: all 0.3s ease;
 }
 
-/* Em telas maiores (Desktop), expande o padding interno do card */
-@media (min-width: 576px) {
-  .login-box {
-    padding: 36px;
-  }
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.form-control {
-  padding: 11px 14px;
-  font-size: 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-}
 .form-control:focus {
-  border-color: #1a3c6e;
-  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.15);
-}
-
-.btn-primary {
-  background: #1a3c6e;
-  border: none;
-  font-weight: bold;
-  font-size: 14px;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-.btn-primary:hover {
-  background: #11294a;
-}
-.btn-primary:disabled {
-  background: #94a3b8;
-}
-
-.erro {
-  color: #c0392b;
-  font-size: 13px;
-  margin-bottom: 12px;
-  font-weight: 500;
-}
-
-.sucesso {
-  color: #27ae60;
-  font-size: 13px;
-  margin-bottom: 12px;
-  font-weight: 500;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
 }
 
 .link-voltar {
-  display: block;
-  text-align: center;
-  font-size: 13px;
-  color: #1a3c6e;
-  text-decoration: none;
-  font-weight: 500;
+  color: #0d6efd;
 }
 .link-voltar:hover {
-  text-decoration: underline;
+  text-decoration: underline !important;
 }
 
 .animate-fade-in {

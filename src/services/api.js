@@ -12,6 +12,22 @@ export const api = axios.create({
   timeout: 10000,
 });
 
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Se o back-end retornar 503 (Manutenção ativa)
+    if (error.response && error.response.status === 503) {
+      // Dispara um evento ou altera uma flag global para mostrar o componente de manutenção
+      window.dispatchEvent(new CustomEvent('sistema-em-manutencao'));
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
 // INTERCEPTOR: Adiciona o Token JWT automaticamente em todas as requisições
 api.interceptors.request.use(
   (config) => {

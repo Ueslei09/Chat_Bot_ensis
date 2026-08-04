@@ -1,7 +1,7 @@
 <template>
   <div class="arquivos">
     <h6>
-      <i class="bi bi-paperclip"></i> 
+      <i class="bi bi-paperclip"></i>
       Arquivos enviados
     </h6>
 
@@ -13,15 +13,10 @@
       <li v-for="arquivo in arquivos" :key="arquivo.id" class="item-arquivo">
         <!-- Ícone dinâmico baseado no tipo mime -->
         <i :class="[iconePorTipo(arquivo.tipo_mime), 'icone-arquivo']"></i>
-        
+
         <!-- Link seguro para download/abertura -->
-        <a 
-          :href="urlArquivo(arquivo.caminho_arquivo)" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          :title="arquivo.nome_arquivo"
-          class="link-arquivo"
-        >
+        <a :href="urlArquivo(arquivo.caminho_arquivo)" target="_blank" rel="noopener noreferrer"
+          :title="arquivo.nome_arquivo" class="link-arquivo">
           {{ arquivo.nome_arquivo }}
         </a>
       </li>
@@ -97,7 +92,8 @@ h6 {
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
-  min-width: 0; /* Essencial para o truncamento de texto flexbox funcionar no mobile */
+  min-width: 0;
+  /* Essencial para o truncamento de texto flexbox funcionar no mobile */
   transition: color 0.15s ease;
 }
 

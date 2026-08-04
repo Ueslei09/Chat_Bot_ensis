@@ -35,3 +35,4 @@ export async function desarquivarContato(id) {
   const resposta = await api.put(`/contatos/${id}/desarquivar`)
   return resposta.data
 }
+

@@ -34,17 +34,28 @@ export function useContatos() {
     eh_grupo: false
   })
 
+  const normalizarContato = (contato) => {
+    return {
+      ...contato,
+      telefoneFormatado: contato.telefone || contato.numero || contato.whatsapp || contato.phone || contato.remoteJid || '—'
+    }
+  }
+
   const carregarContatos = async () => {
     carregando.value = true
+    erro.value = ''
     try {
-      contatos.value = await listarContatos({
-        busca: filtroBusca.value || undefined,
-        conexao: filtroConexao.value || undefined,
-        arquivados: mostrarArquivados.value ? 'true' : undefined,
-        grupos: filtroTipo.value || undefined
+      const resposta = await listarContatos({
+        busca: filtroBusca.value,
+        conexao: filtroConexao.value,
+        eh_grupo: filtroTipo.value,
+        arquivados: mostrarArquivados.value
       })
+      
+      const dadosBrutos = resposta.data || resposta 
+      contatos.value = dadosBrutos.map(normalizarContato)
     } catch (err) {
-      console.error('Erro ao carregar contatos:', err)
+      erro.value = err.response?.data?.erro || 'Erro ao carregar contatos'
     } finally {
       carregando.value = false
     }
@@ -76,7 +87,7 @@ export function useContatos() {
     editandoId.value = contato.id
     form.value = {
       nome: contato.nome,
-      telefone: contato.telefone,
+      telefone: contato.telefone || contato.numero || contato.whatsapp || '',
       conexao: contato.conexao,
       eh_grupo: contato.eh_grupo || false
     }
@@ -124,7 +135,7 @@ export function useContatos() {
 
       try {
         const resultado = await importarContatos(contatosImportar)
-        mensagemImportacao.value = resultado.msg
+        mensagemImportacao.value = resultado.msg || 'Contatos importados com sucesso!'
         await carregarContatos()
       } catch (err) {
         mensagemImportacao.value = err.response?.data?.erro || 'Erro ao importar contatos'
@@ -172,6 +183,7 @@ export function useContatos() {
     desarquivar,
     importarArquivo,
     voltarParaChat,
-    abrirChamado
+    abrirChamado,
+    normalizarContato
   }
 }

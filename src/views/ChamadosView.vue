@@ -14,7 +14,7 @@
 
     <!-- 🎯 ÁREA DO CHAT: No mobile, ela só aparece se HOUVER um chamado aberto -->
     <main :class="['area-chat', chamadoSelecionado ? 'd-flex' : 'd-none d-md-flex']">
-      <div v-if="!chamadoSelecionado" class="chat-vazio">
+      <div v-if="!chamadoSelecionado" class="chat-vazio text-muted">
         Selecione um chamado ao lado para abrir a conversa.
       </div>
 
@@ -69,41 +69,47 @@
 
     <!-- ==================== MODAIS ==================== -->
     <div v-if="modalTransferirAberto" class="modal-overlay" @click.self="fecharModais">
-      <div class="modal-box">
-        <h3>Transferir chamado</h3>
-        <label>Transferir para atendente</label>
-        <select v-model="atendenteEscolhido">
-          <option value="" disabled>Selecione...</option>
-          <option v-for="atendente in atendentes" :key="atendente.id" :value="atendente.id">{{ atendente.nome }}</option>
-        </select>
-        <label>Adicionar comentário</label>
-        <textarea v-model="comentarioTransferir" rows="3" placeholder="Adicionar comentário"></textarea>
+      <div class="modal-box shadow-lg rounded-4 border-0">
+        <h4 class="fw-bold text-dark mb-3">Transferir chamado</h4>
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">Transferir para atendente</label>
+          <select v-model="atendenteEscolhido" class="form-select form-select-sm">
+            <option value="" disabled>Selecione...</option>
+            <option v-for="atendente in atendentes" :key="atendente.id" :value="atendente.id">{{ atendente.nome }}</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">Adicionar comentário</label>
+          <textarea v-model="comentarioTransferir" rows="3" class="form-control form-control-sm" placeholder="Adicionar comentário"></textarea>
+        </div>
         <div class="modal-botoes">
-          <button class="btn-cancelar" @click="fecharModais">Cancelar</button>
-          <button class="btn-confirmar" :disabled="!atendenteEscolhido" @click="transferir">Salvar</button>
+          <button class="btn btn-cancelar btn-sm" @click="fecharModais">Cancelar</button>
+          <button class="btn btn-confirmar btn-sm" :disabled="!atendenteEscolhido" @click="transferir">Salvar</button>
         </div>
       </div>
     </div>
 
     <div v-if="modalFecharAberto" class="modal-overlay" @click.self="fecharModais">
-      <div class="modal-box">
-        <div class="modal-icone-alerta">!</div>
-        <h3>Fechar chamado</h3>
-        <p class="modal-subtitulo">Você tem certeza que deseja fechar o chamado?</p>
-        <label>Resumo do atendimento</label>
-        <textarea v-model="resumoFechamento" rows="3" placeholder="Resumo do atendimento"></textarea>
+      <div class="modal-box shadow-lg rounded-4 border-0 text-center">
+        <div class="modal-icone-alerta mx-auto mb-2 bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-weight: bold;">!</div>
+        <h4 class="fw-bold text-dark mb-1">Fechar chamado</h4>
+        <p class="modal-subtitulo text-muted small mb-3">Você tem certeza que deseja fechar o chamado?</p>
+        <div class="mb-3 text-start">
+          <label class="form-label small fw-bold text-muted">Resumo do atendimento</label>
+          <textarea v-model="resumoFechamento" rows="3" class="form-control form-control-sm" placeholder="Resumo do atendimento"></textarea>
+        </div>
         <div class="modal-botoes">
-          <button class="btn-cancelar btn btn-primary" @click="fecharModais">Cancelar</button>
-          <button class="btn-confirmar btn btn-primary" @click="fechar">Fechar chamado</button>
+          <button class="btn btn-cancelar btn-sm" @click="fecharModais">Cancelar</button>
+          <button class="btn btn-confirmar btn-sm" @click="fechar">Fechar chamado</button>
         </div>
       </div>
     </div>
 
     <!-- MODAL: ENCAMINHAR MENSAGEM -->
     <div v-if="modalEncaminharAberto" class="modal-overlay" @click.self="fecharModalEncaminhar">
-      <div class="modal-box modal-encaminhar-wpp">
+      <div class="modal-box modal-encaminhar-wpp rounded-4 shadow-lg border-0">
         <div class="modal-header-wpp">
-          <h3>Encaminhar mensagem para</h3>
+          <h4 class="fw-bold text-dark mb-0">Encaminhar mensagem para</h4>
           <button class="btn-fechar-modal" @click="fecharModalEncaminhar">✕</button>
         </div>
 
@@ -111,6 +117,7 @@
           <input 
             type="text" 
             placeholder="Pesquisar nome ou número" 
+            class="form-control form-control-sm"
           />
         </div>
 
@@ -124,6 +131,7 @@
               type="checkbox" 
               :value="chamado.id" 
               v-model="chamadoDestinoEncaminhar" 
+              class="form-check-input"
             />
             
             <div class="avatar-container">
@@ -144,8 +152,8 @@
         </div>
 
         <div class="modal-botoes">
-          <button class="btn btn-secondary btn-cancelar" @click="fecharModalEncaminhar">Cancelar</button>
-          <button class="btn btn-primary" :disabled="!chamadoDestinoEncaminhar || chamadoDestinoEncaminhar.length === 0" @click="confirmarEncaminhar">
+          <button class="btn btn-cancelar btn-sm" @click="fecharModalEncaminhar">Cancelar</button>
+          <button class="btn btn-primary btn-sm" :disabled="!chamadoDestinoEncaminhar || chamadoDestinoEncaminhar.length === 0" @click="confirmarEncaminhar">
             Encaminhar
           </button>
         </div>
@@ -240,6 +248,7 @@ const {
   width: 100vw;
   overflow: hidden;
 }
+
 /* ---------- ESTILOS ESPECÍFICOS DO MODAL DE ENCAMINHAMENTO ESTILO WHATSAPP ---------- */
 .modal-encaminhar-wpp {
   background: #ffffff !important;
@@ -256,13 +265,6 @@ const {
   margin-bottom: 12px;
 }
 
-.modal-header-wpp h3 {
-  font-size: 18px;
-  font-weight: 500;
-  margin: 0;
-  color: #111b21;
-}
-
 .btn-fechar-modal {
   background: transparent;
   border: none;
@@ -273,22 +275,6 @@ const {
 
 .modal-search-box {
   margin-bottom: 14px;
-}
-
-.modal-search-box input {
-  width: 100%;
-  padding: 10px 14px;
-  background: #f0f2f5;
-  border: 1px solid #e9edef;
-  border-radius: 8px;
-  font-size: 14px;
-  outline: none;
-  color: #111b21;
-}
-
-.modal-search-box input:focus {
-  background: #ffffff;
-  border-color: #00a884;
 }
 
 .modal-lista-conversas {
@@ -315,13 +301,6 @@ const {
 
 .item-conversa-wpp:hover {
   background: #f5f6f8;
-}
-
-.item-conversa-wpp input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #00a884;
-  cursor: pointer;
 }
 
 .avatar-container {
@@ -369,12 +348,70 @@ const {
   font-size: 14px;
 }
 
+/* ---------- PADRONIZAÇÃO DE BOTÕES GLOBAIS (CORRIGIDOS) ---------- */
+.btn-primary, 
+.btn-confirmar, 
+button[type="submit"], 
+.btn-salvar,
+button.btn-adicionar {
+  background-color: #0d6efd !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 20px !important;
+  border-radius: 50px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease !important;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25) !important;
+}
+
+.btn-primary:hover:not(:disabled), 
+.btn-confirmar:hover:not(:disabled), 
+button[type="submit"]:hover:not(:disabled), 
+.btn-salvar:hover:not(:disabled),
+button.btn-adicionar:hover:not(:disabled) {
+  background-color: #0b5ed7 !important;
+  box-shadow: 0 6px 16px rgba(13, 110, 253, 0.35) !important;
+}
+
+.btn-primary:disabled, 
+.btn-confirmar:disabled, 
+button[type="submit"]:disabled, 
+.btn-salvar:disabled,
+button.btn-adicionar:disabled {
+  background-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.btn-cancelar {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
+  padding: 8px 18px !important;
+  border-radius: 50px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-cancelar:hover {
+  background-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
 .modal-botoes {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  margin-top: 16px;
 }
 
+/* ---------- LAYOUT RESPONSIVO E CHAT ---------- */
 .sidebar-responsiva {
   width: 100%;
 }

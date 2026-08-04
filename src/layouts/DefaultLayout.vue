@@ -175,7 +175,10 @@ const statusWhatsapp = ref('nao-configurado')
 
 async function verificarStatusWhatsapp() {
   try {
-    const conexoes = await listarConexoes({ arquivadas: false })
+    const resposta = await listarConexoes({ arquivadas: false })
+    
+    // Garante que 'conexoes' será sempre um array, independentemente do formato retornado pela API
+    const conexoes = Array.isArray(resposta) ? resposta : (resposta?.data || [])
     const conexoesWhatsapp = conexoes.filter(c => c.tipo === 'whatsapp')
  
     if (conexoesWhatsapp.length === 0) {

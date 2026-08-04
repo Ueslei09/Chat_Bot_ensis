@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { useImageViewer } from '@/composables/useImageViewer'
+import { useImageViewer } from '@/Composables/useImageViewer'
 
 defineProps({
   url: { type: String, required: true }

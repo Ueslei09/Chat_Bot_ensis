@@ -1,423 +1,242 @@
 <template>
-  <div class="configuracoes">
-    
-    <h2>Configurações do Sistema</h2>
+  <div class="container py-4 animate-fade-in" style="max-width: 1100px;">
 
-    <p v-if="carregando">Carregando...</p>
-
-    <form v-else @submit.prevent="salvarConfiguracoes">
-      <div
-        v-for="config in configuracoes"
-        :key="config.chaves"
-        class="campo"
-      >
-        <label>{{ rotuloConfiguracao(config.chaves) }}</label>
-        <textarea v-model="config.valor" rows="2"></textarea>
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold text-dark mb-1">Configurações do Sistema</h2>
+      
       </div>
-
-      <p v-if="mensagem" class="sucesso">{{ mensagem }}</p>
-      <p v-if="erro" class="erro">{{ erro }}</p>
-
-      <button type="submit" :disabled="salvando">
-        {{ salvando ? 'Salvando...' : 'Salvar alterações' }}
+      <button class="btn btn-outline-secondary rounded-pill px-3 btn-sm d-flex align-items-center gap-1" @click="voltarParaLogin">
+        <span>←</span> <span class="d-none d-sm-inline">Sair / Login</span>
       </button>
-    </form>
- 
-    <hr class="separador" />
- 
-    <h2>Cadastrar Novo Usuário</h2>
- 
-    <form @submit.prevent="cadastrarNovoUsuario">
-      <div class="campo">
-        <label>Nome</label>
-        <input v-model="novoUsuario.nome" type="text" required />
-      </div>
-     
-      <div class="campo">
-        <label>E-mail</label>
-        <input v-model="novoUsuario.email" type="email" required />
-      </div>
-     
-      <div class="campo">
-        <label>Senha</label>
-        <input v-model="novoUsuario.senha" type="password" minlength="6" required />
-      </div>
-     
-      <div class="campo">
-        <label>Perfil</label>
-        <select v-model="novoUsuario.perfil_id" required>
-          <option value="" disabled>Selecione...</option>
-          <option v-for="perfil in perfis" :key="perfil.id" :value="perfil.id">
-            {{ perfil.nome }}
-          </option>
-        </select>
-      </div>
-     
-      <p v-if="mensagemUsuario" class="sucesso">{{ mensagemUsuario }}</p>
-      <p v-if="erroUsuario" class="erro">{{ erroUsuario }}</p>
-     
-      <button type="submit" :disabled="cadastrando">
-        {{ cadastrando ? 'Cadastrando...' : 'Cadastrar usuário' }}
-      </button>
-    </form>
- 
-    <hr class="separador" />
- 
-    <h2>Usuários Cadastrados</h2>
- 
-    <table class="tabela-usuarios">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>E-mail</th>
-          <th>Perfil</th>
-          <th>Status</th>
-          <th>Apagar mensagens</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-         <tr v-for="usuario in usuarios" :key="usuario.id">
-          <td>{{ usuario.nome }}</td>
-          <td>{{ usuario.email }}</td>
-          <td>{{ usuario.perfil }}</td>
-          <td>{{ usuario.ativo ? 'Ativo' : 'Bloqueado' }}</td>
-     
-          <!-- Permissão de apagar mensagens -->
-          <td>
-            <span v-if="usuario.perfil === 'ADM'">Sempre permitido</span>
-     
-            <button
-              v-else-if="usuario.podeapagarmensagens"
-              class="btn-bloquear"
-              @click="bloquearApagar(usuario)"
-            >
-              Bloquear apagar
-            </button>
-            <button
-              v-else
-              class="btn-desbloquear"
-              @click="permitirApagar(usuario)"
-            >
-              Permitir apagar
-            </button>
-          </td>
-     
-          <!-- Status / Bloqueio geral de conta -->
-          <td>
-            <button
-              v-if="usuario.ativo"
-              class="btn-bloquear"
-              @click="bloquearConta(usuario.id)"
-            >
-              Bloquear conta
-            </button>
-            <button
-              v-else
-              class="btn-desbloquear"
-              @click="desbloquearConta(usuario.id)"
-            >
-              Desbloquear conta
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    </div>
 
-    <button class="btn-voltar mt-4" @click="voltarParaLogin">
+    <!-- Seção: Configurações Globais -->
+    <div class="card border-0 shadow-sm p-4 mb-4 bg-white rounded-4">
+      <h5 class="fw-bold text-dark mb-3">Parâmetros de Mensagens</h5>
+
+      <p v-if="carregando" class="text-muted">Carregando configurações...</p>
+
+      <form v-else @submit.prevent="salvarConfiguracoes">
+        <div v-if="configuracoes.length === 0" class="text-muted small mb-3">
+          Nenhuma configuração encontrada.
+        </div>
+
+        <div v-for="config in configuracoes" :key="config.chaves" class="mb-3">
+          <label class="form-label small fw-bold text-muted">{{ rotuloConfiguracao(config.chaves) }}</label>
+          <textarea v-model="config.valor" rows="2" class="form-control form-control-sm"></textarea>
+        </div>
+
+        <div v-if="mensagem" class="alert alert-success py-2 small" role="alert">{{ mensagem }}</div>
+        <div v-if="erro" class="alert alert-danger py-2 small" role="alert">{{ erro }}</div>
+
+        <button type="submit" class="btn btn-primary btn-sm fw-bold px-4 py-2" :disabled="salvando">
+          {{ salvando ? 'Salvando...' : 'Salvar alterações' }}
+        </button>
+      </form>
+    </div>
+
+    <hr class="text-muted opacity-25 my-4" />
+
+    <!-- Seção: Cadastrar Novo Usuário -->
+    <div class="card border-0 shadow-sm p-4 mb-4 bg-white rounded-4">
+      <h5 class="fw-bold text-dark mb-3">Cadastrar Novo Usuário</h5>
+
+      <form @submit.prevent="cadastrarNovoUsuario" class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label small fw-bold text-muted">Nome</label>
+          <input v-model="novoUsuario.nome" type="text" class="form-control form-control-sm" placeholder="Nome completo" required />
+        </div>
+        
+        <div class="col-12 col-md-6">
+          <label class="form-label small fw-bold text-muted">E-mail</label>
+          <input v-model="novoUsuario.email" type="email" class="form-control form-control-sm" placeholder="usuario@email.com" required />
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label small fw-bold text-muted">Senha</label>
+          <input v-model="novoUsuario.senha" type="password" class="form-control form-control-sm" placeholder="Mínimo 6 caracteres" minlength="6" required />
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label small fw-bold text-muted">Perfil</label>
+          <select v-model="novoUsuario.perfil_id" class="form-select form-select-sm" required>
+            <option value="" disabled>Selecione...</option>
+            <option v-for="perfil in perfis" :key="perfil.id" :value="perfil.id">
+              {{ perfil.nome }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label small fw-bold text-muted">Departamento</label>
+          <select v-model="novoUsuario.departamento_id" class="form-select form-select-sm">
+            <option value="">Selecione o departamento (opcional)...</option>
+            <option v-for="dept in departamentos" :key="dept.id" :value="dept.id">
+              {{ dept.nome }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-12">
+          <div v-if="mensagemUsuario" class="alert alert-success py-2 small" role="alert">{{ mensagemUsuario }}</div>
+          <div v-if="erroUsuario" class="alert alert-danger py-2 small" role="alert">{{ erroUsuario }}</div>
+
+          <button type="submit" class="btn btn-primary btn-sm fw-bold px-4 py-2" :disabled="cadastrando">
+            {{ cadastrando ? 'Cadastrando...' : 'Cadastrar usuário' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <hr class="text-muted opacity-25 my-4" />
+
+    <!-- Seção: Usuários Cadastrados -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold text-dark mb-0">Usuários Cadastrados</h5>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
+          <thead class="table-light text-uppercase fs-7 text-muted">
+            <tr>
+              <th class="py-3 ps-3">Nome</th>
+              <th class="py-3">E-mail</th>
+              <th class="py-3">Perfil</th>
+              <th class="py-3">Status</th>
+              <th class="py-3">Apagar mensagens</th>
+              <th class="py-3 text-end pe-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="usuarios.length === 0">
+              <td colspan="6" class="text-center py-4 text-muted">Nenhum usuário encontrado.</td>
+            </tr>
+            <tr v-for="usuario in usuarios" :key="usuario.id">
+              <td class="ps-3 fw-semibold text-dark">{{ usuario.nome }}</td>
+              <td class="text-secondary">{{ usuario.email }}</td>
+              <td>
+                <span class="badge bg-secondary-subtle text-dark border">{{ usuario.perfil }}</span>
+              </td>
+              <td>
+                <span class="badge" :class="usuario.ativo ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
+                  {{ usuario.ativo ? 'Ativo' : 'Bloqueado' }}
+                </span>
+              </td>
+         
+              <td>
+                <span v-if="usuario.perfil === 'ADM'" class="text-muted small">Sempre permitido</span>
+         
+                <button
+                  v-else-if="usuario.podeapagarmensagens"
+                  class="btn btn-sm btn-outline-danger py-1 px-2 fs-7"
+                  @click="bloquearApagar(usuario)"
+                >
+                  Bloquear apagar
+                </button>
+                <button
+                  v-else
+                  class="btn btn-sm btn-outline-success py-1 px-2 fs-7"
+                  @click="permitirApagar(usuario)"
+                >
+                  Permitir apagar
+                </button>
+              </td>
+         
+              <td class="text-end pe-3">
+                <button
+                  v-if="usuario.ativo"
+                  class="btn btn-sm btn-outline-danger py-1 px-2 fs-7"
+                  @click="bloquearConta(usuario.id)"
+                >
+                  Bloquear conta
+                </button>
+                <button
+                  v-else
+                  class="btn btn-sm btn-outline-success py-1 px-2 fs-7"
+                  @click="desbloquearConta(usuario.id)"
+                >
+                  Desbloquear conta
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Voltar -->
+    <button class="btn btn-light border btn-sm px-3 py-2 text-secondary" @click="voltarParaLogin">
       ← Voltar para o login
     </button>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { logout } from '@/services/authServices.js'
-import { listarConfiguracoes, atualizarConfiguracao } from '@/services/configuracaoServices.js'
-import {
-  listarPerfis,
-  criarUsuario,
-  listarUsuarios,
-  bloquearUsuario,
-  desbloquearUsuario,
-  alternarPermissaoApagar
-} from '@/services/usuariosServices.js'
+import { useConfiguracoes } from '@/composables/useConfiguracoes.js'
+import { useUsuarios } from '@/composables/useUsuarios.js'
 
 const router = useRouter()
 
-// Estados de Configurações
-const configuracoes = ref([])
-const carregando = ref(true)
-const salvando = ref(false)
-const mensagem = ref('')
-const erro = ref('')
+// Usando o seu composable existente
+const {
+  configuracoes,
+  carregando,
+  salvando,
+  mensagem,
+  erro,
+  carregarConfiguracoes,
+  salvarConfiguracoes,
+  rotuloConfiguracao
+} = useConfiguracoes()
 
-// Estados de Usuários
-const perfis = ref([])
-const usuarios = ref([])
-const cadastrando = ref(false)
-const mensagemUsuario = ref('')
-const erroUsuario = ref('')
+// Usando o novo composable criado para usuários
+const {
+  perfis,
+  usuarios,
+  departamentos,
+  cadastrando,
+  mensagemUsuario,
+  erroUsuario,
+  novoUsuario,
+  carregarPerfis,
+  carregarUsuarios,
+  carregarDepartamentos,
+  cadastrarNovoUsuario,
+  bloquearConta,
+  desbloquearConta,
+  permitirApagar,
+  bloquearApagar
+} = useUsuarios()
 
-const novoUsuario = ref({
-  nome: '',
-  email: '',
-  senha: '',
-  perfil_id: ''
-})
-
-// Desloga o ADM e manda de volta pra tela de login
 function voltarParaLogin() {
   logout()
   router.push('/')
-}
-
-// Rótulos amigáveis para as configurações
-function rotuloConfiguracao(chaves) {
-  const nomes = {
-    mensagem_bom_dia: 'Mensagem de Bom Dia',
-    mensagem_boa_noite: 'Mensagem de Boa Noite',
-    mensagem_agradecimento: 'Mensagem de Agradecimento'
-  }
-  return nomes[chaves] || chaves
-}
-
-// Carregar Configurações
-async function carregarConfiguracoes() {
-  carregando.value = true
-  try {
-    configuracoes.value = await listarConfiguracoes()
-  } catch (err) {
-    erro.value = 'Erro ao carregar configurações'
-  } finally {
-    carregando.value = false
-  }
-}
-
-// Salvar Configurações
-async function salvarConfiguracoes() {
-  salvando.value = true
-  mensagem.value = ''
-  erro.value = ''
-
-  try {
-    for (const config of configuracoes.value) {
-      await atualizarConfiguracao(config.chaves, config.valor)
-    }
-    mensagem.value = 'Configurações salvas com sucesso!'
-  } catch (err) {
-    erro.value = 'Erro ao salvar. Verifique se você está logado como ADM.'
-  } finally {
-    salvando.value = false
-  }
-}
-
-// Carregar Perfis
-async function carregarPerfis() {
-  try {
-    perfis.value = await listarPerfis()
-  } catch (err) {
-    console.error('Erro ao carregar perfis:', err)
-  }
-}
-
-// Carregar Usuários
-async function carregarUsuarios() {
-  try {
-    usuarios.value = await listarUsuarios()
-  } catch (err) {
-    console.error('Erro ao carregar usuários:', err)
-  }
-}
-
-// Cadastrar Novo Usuário
-async function cadastrarNovoUsuario() {
-  cadastrando.value = true
-  mensagemUsuario.value = ''
-  erroUsuario.value = ''
-
-  try {
-    await criarUsuario(novoUsuario.value)
-    mensagemUsuario.value = 'Usuário cadastrado com sucesso!'
-    novoUsuario.value = { nome: '', email: '', senha: '', perfil_id: '' }
-    await carregarUsuarios()
-  } catch (err) {
-    erroUsuario.value = err.response?.data?.erro || 'Erro ao cadastrar usuário'
-  } finally {
-    cadastrando.value = false
-  }
-}
-
-// Bloquear Conta
-async function bloquearConta(id) {
-  try {
-    await bloquearUsuario(id)
-    await carregarUsuarios()
-  } catch (err) {
-    console.error('Erro ao bloquear conta:', err)
-  }
-}
-
-// Desbloquear Conta
-async function desbloquearConta(id) {
-  try {
-    await desbloquearUsuario(id)
-    await carregarUsuarios()
-  } catch (err) {
-    console.error('Erro ao desbloquear conta:', err)
-  }
-}
-
-// Permitir Apagar Mensagens
-async function permitirApagar(usuario) {
-  try {
-    await alternarPermissaoApagar(usuario.id, true)
-    await carregarUsuarios()
-  } catch (err) {
-    console.error('Erro ao permitir apagar mensagens:', err)
-  }
-}
-
-// Bloquear Apagar Mensagens
-async function bloquearApagar(usuario) {
-  try {
-    await alternarPermissaoApagar(usuario.id, false)
-    await carregarUsuarios()
-  } catch (err) {
-    console.error('Erro ao bloquear apagar mensagens:', err)
-  }
 }
 
 onMounted(() => {
   carregarConfiguracoes()
   carregarPerfis()
   carregarUsuarios()
+  carregarDepartamentos()
 })
 </script>
 
 <style scoped>
-.configuracoes {
-  max-width: 700px;
-  margin: 32px auto;
-  padding: 24px;
-  background: #fff;
-  border-radius: 8px;
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
 }
-.campo {
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-textarea, input, select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-family: inherit;
-}
-button {
-  background: #1a3c6e;
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.sucesso {
-  color: #27ae60;
-}
-.erro {
-  color: #c0392b;
-}
-
-.separador {
-  margin: 32px 0;
-  border: none;
-  border-top: 1px solid #eee;
-}
-
-.tabela-usuarios {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-top: 16px;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-.tabela-usuarios thead th {
-  background: #f4f6f9;
-  color: #333;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  padding: 14px 16px;
-  border-bottom: 2px solid #e0e0e0;
-}
-
-.tabela-usuarios tbody td {
-  padding: 14px 16px;
-  font-size: 14px;
-  border-bottom: 1px solid #eee;
-  vertical-align: middle;
-}
-
-.tabela-usuarios tbody tr:nth-child(even) {
-  background: #fafafa;
-}
-
-.tabela-usuarios tbody tr:hover {
-  background: #f0f4fa;
-}
-
-.tabela-usuarios td + td,
-.tabela-usuarios th + th {
-  border-left: 1px solid #eee;
-}
-
-.btn-bloquear,
-.btn-desbloquear {
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.btn-bloquear {
-  background: #fdecea;
-  color: #c0392b;
-}
-.btn-bloquear:hover {
-  background: #c0392b;
-  color: #fff;
-}
-
-.btn-desbloquear {
-  background: #eafaf1;
-  color: #27ae60;
-}
-.btn-desbloquear:hover {
-  background: #27ae60;
-  color: #fff;
-}
-
-.btn-voltar {
-  background: #eaeaea;
-  color: #333;
-}
-.btn-voltar:hover {
-  background: #ddd;
-}
-.mt-4 {
-  margin-top: 24px;
+.fs-7 {
+  font-size: 0.75rem;
 }
 </style>

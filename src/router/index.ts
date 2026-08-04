@@ -151,8 +151,8 @@ router.beforeEach((to) => {
   // 💡 Se estiver indo para as telas de login e já estiver logado, redireciona pro lugar certo
   if (to.path === '/' || to.path === '/master-login' || to.path === '/admin-login') {
     if (logado) {
-      if (ehMaster) return '/master/empresas'
-      return '/app/chamados'
+      if (ehMaster) return { path: '/master/empresas' }
+      return { path: '/app/chamados' }
     }
     return true
   }
@@ -173,4 +173,6 @@ router.beforeEach((to) => {
 
   return true 
 })
+
+
 export default router

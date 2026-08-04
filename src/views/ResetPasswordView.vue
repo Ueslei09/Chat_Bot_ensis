@@ -2,50 +2,50 @@
   <!-- login-page: ocupa a tela inteira (100vh) e usa a imagem de fundo -->
   <div class="login-page" :style="{ backgroundImage: `url(${bgImage})` }">
 
-    <!-- Camada escura por cima da imagem, só pra dar contraste com o texto -->
+    <!-- Camada escura por cima da imagem para contraste -->
     <div class="overlay"></div>
 
     <!-- Cartão do formulário, flutuando centralizado por cima da imagem -->
-    <div class="login-box animate-fade-in">
-      <h3 class="mb-2 text-center text-dark fw-bold">Nova Senha</h3>
-      <p class="text-muted text-center mb-4" style="font-size: 13px;">
+    <div class="login-box shadow-lg rounded-4 border-0 p-4 p-sm-5 animate-fade-in">
+      <h3 class="mb-1 text-center text-dark fw-bold">Nova Senha</h3>
+      <p class="text-muted text-center mb-4 small">
         Digite e confirme a sua nova senha de acesso.
       </p>
 
       <form v-if="token" @submit.prevent="alterarSenha">
         <div class="mb-3">
-          <label class="form-label">Nova Senha</label>
+          <label class="form-label small fw-bold text-muted">Nova Senha</label>
           <input
             v-model="novaSenha"
             type="password"
-            class="form-control"
+            class="form-control form-control-sm py-2"
             placeholder="No mínimo 6 caracteres"
             required
           />
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Confirmar Nova Senha</label>
+          <label class="form-label small fw-bold text-muted">Confirmar Nova Senha</label>
           <input
             v-model="confirmarSenha"
             type="password"
-            class="form-control"
+            class="form-control form-control-sm py-2"
             placeholder="Repita a nova senha"
             required
           />
         </div>
 
-        <p v-if="mensagemErro" class="erro">{{ mensagemErro }}</p>
-        <p v-if="mensagemSucesso" class="sucesso">{{ mensagemSucesso }}</p>
+        <div v-if="mensagemErro" class="alert alert-danger py-2 small" role="alert">{{ mensagemErro }}</div>
+        <div v-if="mensagemSucesso" class="alert alert-success py-2 small" role="alert">{{ mensagemSucesso }}</div>
 
-        <button type="submit" class="btn btn-primary w-100 py-2.5" :disabled="carregando">
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm" :disabled="carregando">
           {{ carregando ? 'Alterando...' : 'Redefinir Senha' }}
         </button>
       </form>
 
-      <div v-else>
-        <p class="erro text-center mb-4 font-medium">Link de recuperação inválido ou expirado.</p>
-        <router-link to="/esqueci-senha" class="btn btn-secondary w-100 py-2.5">
+      <div v-else class="text-center">
+        <div class="alert alert-danger py-2 small mb-3">Link de recuperação inválido ou expirado.</div>
+        <router-link to="/esqueci-senha" class="btn btn-secondary w-100 py-2 fw-bold text-decoration-none">
           Solicitar novo link
         </router-link>
       </div>
@@ -82,88 +82,25 @@ const {
   padding: 20px;
 }
 
-/* Camada escura semi-transparente por cima da imagem (contraste) */
+/* Camada escura semi-transparente por cima da imagem */
 .overlay {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
 }
 
-/* Cartão do formulário, flutuando acima da imagem e do overlay */
+/* Cartão do formulário */
 .login-box {
   position: relative;
   z-index: 1;
   background: #ffffff;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 380px;
-  transition: all 0.3s ease;
+  max-width: 400px;
 }
 
-@media (min-width: 576px) {
-  .login-box {
-    padding: 36px;
-  }
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.form-control {
-  padding: 11px 14px;
-  font-size: 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-}
 .form-control:focus {
-  border-color: #1a3c6e;
-  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.15);
-}
-
-.btn-primary {
-  background: #1a3c6e;
-  border: none;
-  padding: 11px;
-  font-weight: bold;
-  font-size: 14px;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-.btn-primary:hover {
-  background: #11294a;
-}
-.btn-primary:disabled {
-  background: #94a3b8;
-}
-
-.btn-secondary {
-  padding: 11px;
-  font-weight: bold;
-  font-size: 14px;
-  border-radius: 8px;
-}
-
-.erro {
-  color: #dc2626;
-  font-size: 13px;
-  margin-bottom: 12px;
-  font-weight: 500;
-}
-
-.sucesso {
-  color: #16a34a;
-  font-size: 13px;
-  margin-bottom: 12px;
-  font-weight: 500;
-}
-
-.font-medium {
-  font-weight: 500;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
 }
 
 /* Animação suave de entrada */

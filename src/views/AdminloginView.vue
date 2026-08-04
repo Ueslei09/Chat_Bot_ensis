@@ -4,42 +4,44 @@
     <!-- Camada escura por cima da imagem para contraste perfeito -->
     <div class="overlay"></div>
 
-    <div class="login-box">
+    <div class="login-box shadow-lg rounded-4 border-0 p-4 p-sm-5">
       <h3 class="mb-4 text-center text-dark fw-bold">Acesso Administrativo</h3>
 
       <form @submit.prevent="entrar">
         <div class="mb-3">
-          <label class="form-label">E-mail</label>
+          <label class="form-label small fw-bold text-muted">E-mail</label>
           <input
             v-model="email"
             type="email"
-            class="form-control"
+            class="form-control form-control-sm py-2"
             placeholder="admin@ensis.com"
             required
           />
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Senha</label>
+          <label class="form-label small fw-bold text-muted">Senha</label>
           <input
             v-model="senha"
             type="password"
-            class="form-control"
+            class="form-control form-control-sm py-2"
             placeholder="Digite sua senha"
             required
           />
         </div>
 
-        <p v-if="erro" class="erro">{{ erro }}</p>
+        <div v-if="erro" class="alert alert-danger py-2 small" role="alert">{{ erro }}</div>
 
-        <button type="submit" class="btn btn-primary w-100 py-2.5" :disabled="carregando">
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm" :disabled="carregando">
           {{ carregando ? 'Entrando...' : 'Entrar como ADM' }}
         </button>
       </form>
 
-      <router-link to="/" class="link-voltar">
-        Não sou administrador, voltar
-      </router-link>
+      <div class="text-center mt-3">
+        <router-link to="/" class="link-voltar small text-decoration-none fw-semibold">
+          Não sou administrador, voltar
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -68,7 +70,7 @@ const {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px; /* 🎯 Evita que o card cole nas bordas no celular */
+  padding: 20px;
 }
 
 /* Camada escura semi-transparente por cima da imagem */
@@ -82,72 +84,22 @@ const {
   position: relative;
   z-index: 1;
   background: #fff;
-  padding: 24px; /* Padding seguro no mobile */
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   transition: all 0.3s ease;
 }
 
-/* Em telas maiores (Desktop), ganha respiro maior */
-@media (min-width: 576px) {
-  .login-box {
-    padding: 36px;
-  }
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.form-control {
-  padding: 11px 14px;
-  font-size: 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-}
 .form-control:focus {
-  border-color: #1a3c6e;
-  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.15);
-}
-
-.btn-primary {
-  background: #1a3c6e;
-  border: none;
-  font-weight: bold;
-  font-size: 14px;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-.btn-primary:hover {
-  background: #11294a;
-}
-.btn-primary:disabled {
-  background: #94a3b8;
-}
-
-.erro {
-  color: #c0392b;
-  font-size: 13px;
-  margin-bottom: 12px;
-  font-weight: 500;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
 }
 
 .link-voltar {
-  display: block;
-  text-align: center;
-  margin-top: 16px;
-  font-size: 13px;
-  color: #666;
-  text-decoration: none;
-  font-weight: 500;
+  color: #6c757d;
 }
 .link-voltar:hover {
-  text-decoration: underline;
-  color: #1a3c6e;
+  color: #0d6efd;
+  text-decoration: underline !important;
 }
 
 .animate-fade-in {

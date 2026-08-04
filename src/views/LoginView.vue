@@ -3,21 +3,21 @@
   <!-- login-page: ocupa a tela inteira (100vh) e usa a imagem de fundo -->
   <div class="login-page" :style="{ backgroundImage: `url(${bgImage})` }">
 
-    <!-- Camada escura por cima da imagem, só pra dar contraste com o texto -->
+    <!-- Camada escura por cima da imagem para contraste -->
     <div class="overlay"></div>
 
     <!-- Cartão do formulário, flutuando centralizado por cima da imagem -->
-    <div class="login-box animate-fade-in">
+    <div class="login-box shadow-lg rounded-4 border-0 p-4 p-sm-5 animate-fade-in">
       <h3 class="mb-4 text-center text-dark fw-bold">Moove Chat-Multi</h3>
 
       <form @submit.prevent="login">
         <div class="mb-3">
-          <label for="usuario" class="form-label">Usuário</label>
+          <label for="usuario" class="form-label small fw-bold text-muted">Usuário</label>
           <input
             id="usuario"
             v-model="usuario"
             type="text"
-            class="form-control"
+            class="form-control form-control-sm py-2"
             placeholder="Digite seu usuário"
             aria-label="Usuário"
             required
@@ -25,36 +25,38 @@
         </div>
 
         <div class="mb-3">
-          <label for="senha" class="form-label">Senha</label>
+          <label for="senha" class="form-label small fw-bold text-muted">Senha</label>
           <input
             id="senha"
             v-model="senha"
             type="password"
-            class="form-control"
+            class="form-control form-control-sm py-2"
             placeholder="Digite sua senha"
             aria-label="Senha"
             required
           />
           <!-- Link Esqueci a senha -->
-          <div class="forgot-wrapper">
-            <router-link to="/esqueci-senha" class="link-forgot">
+          <div class="forgot-wrapper text-end mt-1">
+            <router-link to="/esqueci-senha" class="link-forgot small text-decoration-none">
               Esqueci a senha?
             </router-link>
           </div>
         </div>
 
         <!-- Mostra erro de login, se houver -->
-        <p v-if="erro" class="erro" role="alert">{{ erro }}</p>
+        <div v-if="erro" class="alert alert-danger py-2 small" role="alert">{{ erro }}</div>
 
-        <button type="submit" class="btn btn-primary w-100 py-2.5" :disabled="carregando">
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm" :disabled="carregando">
           <span v-if="carregando" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           {{ carregando ? 'Entrando...' : 'Entrar' }}
         </button>
       </form>
  
-      <router-link to="/admin-login" class="link-admin">
-        Usuário administrador
-      </router-link>
+      <div class="text-center mt-3">
+        <router-link to="/admin-login" class="link-admin small text-decoration-none fw-semibold">
+          Usuário administrador
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -101,87 +103,22 @@ const login = async () => {
   position: relative; 
   z-index: 1;
   background: var(--bg-card, #ffffff);
-  padding: 24px;
-  border-radius: var(--radius-box, 12px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   transition: all 0.3s ease;
 }
 
-@media (min-width: 576px) {
-  .login-box {
-    padding: 36px;
-  }
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-color, #475569);
-}
-
-.form-control {
-  padding: 11px 14px;
-  font-size: 14px;
-  border: 1px solid var(--border-color, #cbd5e1);
-  border-radius: var(--radius-base, 8px);
-}
-
 .form-control:focus {
-  border-color: var(--primary-color, #1a3c6e);
-  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.15);
-}
-
-.btn-primary {
-  background: var(--primary-color, #1a3c6e);
-  border: none;
-  padding: 11px;
-  font-weight: bold;
-  font-size: 14px;
-  border-radius: var(--radius-base, 8px);
-  transition: background 0.2s;
-}
-
-.btn-primary:hover {
-  background: var(--primary-hover, #11294a);
-}
-
-.btn-primary:disabled {
-  background: #94a3b8;
-}
-
-.erro {
-  color: var(--error-color, #dc2626);
-  font-size: 13px;
-  margin-bottom: 12px;
-  font-weight: 500;
+  border-color: var(--primary-color, #0d6efd);
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
 }
 
 .link-admin, .link-forgot {
-  color: var(--primary-color, #1a3c6e);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.link-admin {
-  display: block;
-  text-align: center;
-  margin-top: 20px;
-  font-size: 13px;
+  color: var(--primary-color, #0d6efd);
 }
 
 .link-admin:hover, .link-forgot:hover {
-  text-decoration: underline;
-}
-
-.forgot-wrapper {
-  text-align: right;
-  margin-top: 6px;
-}
-
-.link-forgot {
-  font-size: 12px;
+  text-decoration: underline !important;
 }
 
 .animate-fade-in {

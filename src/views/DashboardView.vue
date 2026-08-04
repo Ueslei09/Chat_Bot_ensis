@@ -2,19 +2,19 @@
   <div class="container-fluid py-3 py-md-4 animate-fade-in dashboard-wrapper">
     <div class="row mb-4">
       <div class="col">
-        <h2 class="text-dark fw-bold titulo-dashboard">Dashboard de Atendimento</h2>
-        <p class="text-muted subtitulo-dashboard">Bem-vindo ao painel de controle do Moove Chat-Multi.</p>
+        <h2 class="text-dark fw-bold titulo-dashboard">Dashboard Administrativo</h2>
+        <p class="text-muted subtitulo-dashboard">Painel gerencial de controle do Moove Chat-Multi.</p>
       </div>
     </div>
 
     <!-- Cards de Métricas -->
     <div class="row g-3 mb-4">
-      <!-- Card: Meus Chamados -->
+      <!-- Card: Em Atendimento Geral -->
       <div class="col-12 col-md-4">
         <div class="card border-0 shadow-sm p-3 bg-primary text-white h-100 card-metrica">
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              <h6 class="text-uppercase text-white-50 small mb-1">Meus Chamados</h6>
+              <h6 class="text-uppercase text-white-50 small mb-1">Em Atendimento</h6>
               <h3 class="mb-0 fw-bold">{{ metricas.meusChamados }}</h3>
             </div>
             <i class="bi bi-chat-left-text fs-1"></i>

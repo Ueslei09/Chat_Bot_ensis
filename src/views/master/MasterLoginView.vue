@@ -1,55 +1,57 @@
 <template>
   <!-- master-auth-wrapper: Centraliza e aplica padding de segurança nos cantos -->
   <div class="master-auth-wrapper" :style="{ backgroundImage: `url(${bgImage})` }">
-    <div class="master-auth-box animate-fade-in">
-      <div class="master-header">
-        <div class="master-badge">SYSTEM ADMIN</div>
-        <h2>Moove <span class="accent">Chat Multi</span></h2>
-        <p>Autenticação de Segurança Corporativa</p>
+    <div class="master-auth-box shadow-lg rounded-4 p-4 p-sm-5 animate-fade-in">
+      <div class="master-header text-center mb-4">
+        <span class="master-badge badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill mb-2 fw-bold">SYSTEM ADMIN</span>
+        <h2 class="text-white m-0 fw-semibold fs-4">Moove <span class="accent text-indigo">Chat Multi</span></h2>
+        <p class="text-muted small mt-1 mb-0">Autenticação de Segurança Corporativa</p>
       </div>
 
-      <form @submit.prevent="handleMasterLogin" class="master-form">
-        <div class="input-wrapper">
-          <label for="master-email">E-mail do Administrador</label>
-          <div class="input-field">
-            <span class="icon">📧</span>
+      <form @submit.prevent="handleMasterLogin" class="master-form d-flex flex-column gap-3">
+        <div class="input-wrapper d-flex flex-column gap-1">
+          <label for="master-email" class="form-label text-light small fw-medium mb-1">E-mail do Administrador</label>
+          <div class="input-field d-flex align-items-center rounded-3 px-3">
+            <span class="icon me-2">📧</span>
             <input 
               id="master-email"
               v-model="email" 
               type="email" 
               placeholder="root@moove.com" 
+              class="form-control form-control-sm bg-transparent border-0 text-white shadow-none py-2"
               required 
             />
           </div>
         </div>
 
-        <div class="input-wrapper">
-          <label for="master-password">Chave de Segurança (Senha)</label>
-          <div class="input-field">
-            <span class="icon">🔒</span>
+        <div class="input-wrapper d-flex flex-column gap-1">
+          <label for="master-password" class="form-label text-light small fw-medium mb-1">Chave de Segurança (Senha)</label>
+          <div class="input-field d-flex align-items-center rounded-3 px-3">
+            <span class="icon me-2">🔒</span>
             <input 
               id="master-password"
               v-model="senha" 
               type="password" 
               placeholder="••••••••••••" 
+              class="form-control form-control-sm bg-transparent border-0 text-white shadow-none py-2"
               required 
             />
           </div>
         </div>
 
-        <div v-if="erro" class="error-container">
+        <div v-if="erro" class="error-container d-flex align-items-center gap-2 alert alert-danger py-2 mb-0 small" role="alert">
           <span class="error-icon">⚠️</span>
-          <p class="error-text">{{ erro }}</p>
+          <p class="error-text mb-0">{{ erro }}</p>
         </div>
 
-        <button type="submit" :disabled="carregando" class="btn-master-login">
+        <button type="submit" :disabled="carregando" class="btn btn-master-login btn-primary w-100 py-2 fw-semibold d-flex justify-content-center align-items-center gap-2 mt-2">
           <span>{{ carregando ? 'Validando Credenciais...' : 'Acessar Infraestrutura' }}</span>
           <span v-if="!carregando" class="arrow">→</span>
         </button>
       </form>
 
-      <div class="master-footer">
-        <p>Acessos são monitorados por logs de auditoria.</p>
+      <div class="master-footer text-center mt-4 pt-3 border-top border-secondary border-opacity-25">
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Acessos são monitorados por logs de auditoria.</p>
       </div>
     </div>
   </div>
@@ -78,55 +80,29 @@ const {
   width: 100%;
   
   background-size: cover;        
-  background-position: center;     
-  background-repeat: no-repeat;    
+  background-position: center;    
+  background-repeat: no-repeat;   
   
   font-family: 'Segoe UI', Roboto, sans-serif;
-  padding: 16px; /* Garante respiro nas bordas laterais no celular */
+  padding: 16px;
 }
 
 .master-auth-box {
   background: rgba(20, 15, 38, 0.82);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(99, 102, 241, 0.2);
-  padding: 24px; 
-  border-radius: 16px;
   width: 100%;
   max-width: 440px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   transition: all 0.3s ease;
 }
 
-/* Em telas maiores (Desktop), o card ganha mais área de respiro */
-@media (min-width: 576px) {
-  .master-auth-box {
-    padding: 40px;
-  }
-}
-
-.master-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
 .master-badge {
-  display: inline-block;
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  padding: 4px 12px;
-  border-radius: 20px;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
   font-size: 0.72rem;
-  font-weight: 700;
   letter-spacing: 1.5px;
-  margin-bottom: 12px;
-}
-
-.master-header h2 {
-  color: #ffffff;
-  margin: 0;
-  font-size: 1.6rem;
-  font-weight: 600;
 }
 
 .master-header .accent {
@@ -137,37 +113,9 @@ const {
   margin-top: 4px;
 }
 
-.master-header p {
-  color: #94a3b8;
-  font-size: 0.85rem;
-  margin: 8px 0 0 0;
-}
-
-.master-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.input-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.input-wrapper label {
-  color: #cbd5e1;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
 .input-field {
-  display: flex;
-  align-items: center;
   background: #110c22;
   border: 1px solid #332a57;
-  border-radius: 8px;
-  padding: 0 14px;
   transition: all 0.3s ease;
 }
 
@@ -176,80 +124,25 @@ const {
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
-.input-field .icon {
-  font-size: 1.1rem;
-  margin-right: 10px;
-  display: flex;
-  align-items: center;
-}
-
-.input-field input {
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  padding: 12px 0;
-  width: 100%;
-  font-size: 0.95rem;
-  outline: none;
-}
-
 .input-field input::placeholder {
   color: #4b5563;
 }
 
-.error-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.2);
-  padding: 12px;
-  border-radius: 8px;
-}
-
-.error-text {
-  color: #f87171;
-  font-size: 0.85rem;
-  margin: 0;
-}
-
 .btn-master-login {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
+  background-color: #4f46e5 !important;
+  border: none !important;
+  border-radius: 8px !important;
   transition: background 0.2s ease;
-  margin-top: 6px;
 }
 
 .btn-master-login:hover {
-  background: #4338ca;
+  background-color: #4338ca !important;
 }
+
 .btn-master-login:disabled {
-  background: #312e81;
-  color: #6366f1;
+  background-color: #312e81 !important;
+  color: #6366f1 !important;
   cursor: not-allowed;
-}
-
-.master-footer {
-  text-align: center;
-  margin-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 16px;
-}
-
-.master-footer p {
-  color: #64748b;
-  font-size: 0.75rem;
-  margin: 0;
 }
 
 /* Animação suave de entrada */

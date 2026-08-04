@@ -1,8 +1,6 @@
-// src/composables/useGerenciarEmpresa.js
 import { ref, reactive, onMounted, watch } from 'vue';
-import { api } from '@/services/api';
+import api from '@/services/api';
 
-// ⚠️ Certifique-se de que a palavra "function" está presente e o nome está idêntico
 export function useGerenciarEmpresa() {
   const abaAtiva = ref('empresas');
   const empresas = ref([]);
@@ -15,6 +13,8 @@ export function useGerenciarEmpresa() {
   const abrirModalProvisao = ref(false);
   const carregando = ref(false);
   const empresaSelecionada = ref(null);
+
+  const modoManutencaoAtivo = ref(false);
 
   const formEmpresa = reactive({ nomeEmpresa: '', nomeDono: '', emailDono: '', senhaDono: '' });
   const formLead = reactive({ nomeEmpresa: '', nomeResponsavel: '', segmento: '', telefone: '' });
@@ -58,6 +58,34 @@ export function useGerenciarEmpresa() {
     }
   };
 
+  const checarStatusManutencaoMaster = async () => {
+    try {
+      const res = await api.get('/configuracoes/status');
+      modoManutencaoAtivo.value = res.data.emManutencao;
+    } catch (e) {
+      if (e.response && e.response.status === 503) {
+        modoManutencaoAtivo.value = true;
+      }
+    }
+  };
+
+ const alternarModoManutencaoGlobal = async () => {
+    try {
+      const novoEstado = !modoManutencaoAtivo.value;
+      const token = localStorage.getItem('token'); // Pega o token salvo no login
+
+      const resposta = await api.post('/configuracoes/manutencao', 
+        { ativo: novoEstado },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      modoManutencaoAtivo.value = novoEstado;
+      alert(resposta.data.mensagem);
+    } catch (error) {
+      alert('Erro ao alterar o modo de manutenção.');
+    }
+  };
+
   watch(abaAtiva, (novaAba) => {
     if (novaAba === 'empresas') carregarEmpresas();
     if (novaAba === 'comercial') carregarLeads();
@@ -66,14 +94,14 @@ export function useGerenciarEmpresa() {
   });
 
   const confirmarBaixaPagamento = async (faturaId, nomeEmpresa) => {
-    if (!confirm(`Confirmar o recebimento desta parcela da empresa "${nomeEmpresa}"? Isso irá reativar o acesso dela imediatamente.`)) return;
+    if (!confirm(`Confirmar o recebimento desta parcela da empresa "${nomeEmpresa}"?`)) return;
     try {
       const res = await api.put(`/admin/empresas/financeiro/liquidar/${faturaId}`);
       alert(res.data.msg || 'Pagamento confirmado!');
       if (abaAtiva.value === 'inadimplencia') carregarInadimplentes();
       if (abaAtiva.value === 'extrato') carregarTodasFaturas();
     } catch (err) {
-      alert(err.response?.data?.erro || 'Erro ao processar baixa do pagamento.');
+      alert(err.response?.data?.erro || 'Erro ao processar baixa.');
     }
   };
 
@@ -91,7 +119,7 @@ export function useGerenciarEmpresa() {
     try {
       const payload = { empresa_id: empresaSelecionada.value.id, ...formProvisao };
       await api.post('/admin/empresas/financeiro/provisao', payload);
-      alert(`Parcela (${formProvisao.numero_parcela}) registrada com sucesso!`);
+      alert('Parcela registrada com sucesso!');
       abrirModalProvisao.value = false;
     } catch (err) { 
       alert(err.response?.data?.erro || 'Erro ao lançar provisão.'); 
@@ -106,10 +134,7 @@ export function useGerenciarEmpresa() {
       await api.post('/admin/empresas', formEmpresa);
       alert('Empresa ativada!');
       abrirModalEmpresa.value = false;
-      formEmpresa.nomeEmpresa = '';
-      formEmpresa.nomeDono = '';
-      formEmpresa.emailDono = '';
-      formEmpresa.senhaDono = '';
+      Object.keys(formEmpresa).forEach(k => formEmpresa[k] = '');
       carregarEmpresas();
     } catch { 
       alert('Erro ao salvar empresa.'); 
@@ -122,12 +147,9 @@ export function useGerenciarEmpresa() {
     carregando.value = true;
     try {
       await api.post('/admin/empresas/comercial/leads', formLead);
-      alert('Lead comercial cadastrado com sucesso!');
+      alert('Lead cadastrado!');
       abrirModalLead.value = false;
-      formLead.nomeEmpresa = '';
-      formLead.nomeResponsavel = '';
-      formLead.segmento = '';
-      formLead.telefone = '';
+      Object.keys(formLead).forEach(k => formLead[k] = '');
       carregarLeads();
     } catch (err) {
       alert(err.response?.data?.erro || 'Erro ao cadastrar lead.');
@@ -146,10 +168,10 @@ export function useGerenciarEmpresa() {
   };
 
   const bloquearPorInadimplencia = async (empresaInadimplente) => {
-    if (!confirm(`Deseja suspender IMEDIATAMENTE o acesso da empresa "${empresaInadimplente.nome}"?`)) return;
+    if (!confirm(`Suspender acesso de "${empresaInadimplente.nome}"?`)) return;
     try {
       await api.put(`/admin/empresas/${empresaInadimplente.id}/toggle-status`);
-      alert(`Acesso revogado.`);
+      alert('Acesso revogado.');
       carregarInadimplentes();
     } catch { 
       alert('Erro ao suspender.'); 
@@ -157,40 +179,27 @@ export function useGerenciarEmpresa() {
   };
 
   const deletarEmpresa = async (id, nome) => {
-    if (!confirm(`Deseja realmente excluir a empresa "${nome}"?`)) return;
+    if (!confirm(`Excluir empresa "${nome}"?`)) return;
     try {
       await api.delete(`/admin/empresas/${id}`);
-      alert('Empresa excluída com sucesso.');
+      alert('Empresa excluída.');
       carregarEmpresas();
     } catch (err) {
-      alert(err.response?.data?.erro || 'Erro ao excluir empresa.');
+      alert(err.response?.data?.erro || 'Erro ao excluir.');
     }
   };
 
-  onMounted(() => carregarEmpresas());
+  onMounted(() => {
+    carregarEmpresas();
+    checarStatusManutencaoMaster();
+  });
 
   return {
-    abaAtiva,
-    empresas,
-    leads,
-    inadimplentes,
-    todasFaturas,
-    abrirModalEmpresa,
-    abrirModalLead,
-    abrirModalProvisao,
-    carregando,
-    empresaSelecionada,
-    formEmpresa,
-    formLead,
-    formProvisao,
-    templateIdFix,
-    confirmarBaixaPagamento,
-    prepararProvisao,
-    salvarProvisaoManual,
-    salvarNovaEmpresa,
-    salvarNovoLead,
-    alternarStatus,
-    bloquearPorInadimplencia,
-    deletarEmpresa
+    abaAtiva, empresas, leads, inadimplentes, todasFaturas,
+    abrirModalEmpresa, abrirModalLead, abrirModalProvisao, carregando, empresaSelecionada,
+    formEmpresa, formLead, formProvisao, templateIdFix,
+    confirmarBaixaPagamento, prepararProvisao, salvarProvisaoManual,
+    salvarNovaEmpresa, salvarNovoLead, alternarStatus, bloquearPorInadimplencia, deletarEmpresa,
+    modoManutencaoAtivo, alternarModoManutencaoGlobal, checarStatusManutencaoMaster
   };
 }
