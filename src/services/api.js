@@ -2,7 +2,8 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useAuthStore } from '@/stores/auth'; // Importamos a store central de autenticação
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// URL fixa apontando para o Render para evitar falhas do .env local
+const API_URL = 'https://meubanco-chat.onrender.com';
 
 // ============================================================
 // 1. CONFIGURAÇÃO DO AXIOS (HTTP)
