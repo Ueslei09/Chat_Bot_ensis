@@ -2,18 +2,17 @@
 import { api } from './api'
 
 /**
- * Busca chamados filtrando por status.
- * Usado nas 3 views do painel esquerdo:
- *   'ABERTO'          -> Fila de chamados
- *   'EM_ATENDIMENTO'  -> Atendendo
- *   'FECHADO'         -> Chamados fechados
+ * Busca chamados filtrando por status com paginação.
  * @param {string} status
+ * @param {number} page - Página atual
+ * @param {number} limit - Quantidade de itens por página
  */
-export async function listarChamadosPorStatus(status) {
-  const resposta = await api.get('/chamados', { params: { status } })
-  return resposta.data
+export async function listarChamadosPorStatus(status, page = 1, limit = 20) {
+  const resposta = await api.get('/chamados', { 
+    params: { status, page, limit } 
+  })
+  return resposta.data // Agora retorna { data, total, page, limit }
 }
-
 /**
  * Cria um novo chamado (abre atendimento) vinculado a um cliente.
  * @param {number} clienteId

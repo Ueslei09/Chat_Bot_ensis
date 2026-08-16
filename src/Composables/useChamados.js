@@ -34,6 +34,8 @@ export function useChamados() {
   let elementoScroll = null
 
   const abaAtual = ref('EM_ATENDIMENTO')
+  const paginaAtual = ref(1) 
+  const limitePorPagina = ref(20) 
   const chamados = ref([])
   const carregando = ref(false)
   const chamadoSelecionado = ref(null)
@@ -41,6 +43,9 @@ export function useChamados() {
   const detalhesAbertos = ref(false)
   const detalhesChamado = ref(null)
   const carregandoDetalhes = ref(false)
+
+
+
 
   const admin = isAdmin()
   const meuId = getIdUsuario()
@@ -161,18 +166,37 @@ export function useChamados() {
     chamadoSelecionado.value = null
   }
 
-  async function carregarChamados() {
-    carregando.value = true
-    try { chamados.value = await listarChamadosPorStatus(abaAtual.value) } 
-    catch (err) { console.error('Erro ao carregar chamados:', err) } 
-    finally { carregando.value = false }
+  
+
+
+  // A FUNÇÃO ATUALIZADA
+  async function carregarChamados(resetarPagina = true) {
+    if (resetarPagina) paginaAtual.value = 1;
+    
+    carregando.value = true;
+    try {
+      const resultado = await listarChamadosPorStatus(
+        abaAtual.value, 
+        paginaAtual.value, 
+        limitePorPagina.value
+      );
+      
+      // Ajuste importante: resultado.data é o padrão que combinamos
+      chamados.value = resetarPagina ? resultado.data : [...chamados.value, ...resultado.data];
+    } catch (err) { 
+      console.error('Erro ao carregar chamados:', err); 
+    } finally { 
+      carregando.value = false; 
+    }
   }
 
   function trocarAba(status) {
     abaAtual.value = status
-    chamadoSelecionado.value = null
+    chamadoSelecionado.value = null,
+    paginaAtual.value = 1,// Reseta para a primeira página
     mensagemAcao.value = ''
-    mensagens.value = []
+    mensagens.value = [],
+    carregarChamados(true) // Carrega a nova aba
   }
 
   watch(abaAtual, carregarChamados)

@@ -22,12 +22,14 @@ export function useGerenciarEmpresa() {
 
   const templateIdFix = (id) => id;
 
-  const carregarEmpresas = async () => {
+ const carregarEmpresas = async () => {
     try { 
       const res = await api.get('/admin/empresas'); 
       empresas.value = res.data; 
-    } catch { 
-      alert('Erro ao carregar as empresas.'); 
+    } catch (err) { 
+      // Mostra o erro exato que veio do servidor na tela
+      const mensagemErro = err.response?.data?.erro || err.message;
+      alert('Erro detalhado: ' + mensagemErro); 
     }
   };
 
