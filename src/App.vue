@@ -14,8 +14,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import api from '@/services/api';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import api, { socket } from '@/services/api'; // Importa o socket configurado
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
@@ -24,7 +24,7 @@ const statusBanco = ref(false);
 const verificarManutencaoGlobal = async () => {
   try {
     const res = await api.get('/configuracoes/status');
-   statusBanco.value = res.data.emManutencao;
+    statusBanco.value = res.data.emManutencao;
   } catch (e) {
     console.error('Erro ao verificar status de manutenção');
   }
@@ -32,14 +32,24 @@ const verificarManutencaoGlobal = async () => {
 
 // Só exibe a tela de manutenção se NÃO estiver em rotas de master
 const emManutencao = computed(() => {
-
   return statusBanco.value && !route.path.startsWith('/master');
 });
 
 onMounted(() => {
   verificarManutencaoGlobal();
-  // Opcional: checa a cada 10 segundos se o Master ligou/desligou
-  setInterval(verificarManutencaoGlobal, 10000);
+
+  // ⚡ Conecta o socket e escuta a mudança instantânea do Super Admin
+  if (!socket.connected) {
+    socket.connect();
+  }
+
+  socket.on('statusManutencaoAlterado', (dados) => {
+    statusBanco.value = dados.emManutencao;
+  });
+});
+
+onUnmounted(() => {
+  socket.off('statusManutencaoAlterado');
 });
 </script>
 
