@@ -83,14 +83,26 @@
               ● {{ conexao.status === 'conectado' ? 'Conectado' : 'Desconectado' }}
             </span>
 
-            <button 
-              v-if="conexao.status !== 'conectado'" 
-              @click="abrirParaReconectar(conexao)" 
-              class="btn btn-outline-success btn-sm py-0 px-2 fw-semibold"
-              style="font-size: 0.75rem;"
-            >
-              🔄 Reconectar
-            </button>
+            <!-- Botão Dinâmico: Desconectar (se conectado) ou Reconectar (se desconectado) -->
+            <div class="d-flex gap-1">
+              <button 
+                v-if="conexao.status === 'conectado'" 
+                @click="desconectarInstancia(conexao)"
+                class="btn btn-outline-danger btn-sm py-0 px-2 fw-semibold"
+                style="font-size: 0.75rem;"
+              >
+                🔌 Desconectar
+              </button>
+
+              <button 
+                v-else 
+                @click="abrirParaReconectar(conexao)" 
+                class="btn btn-outline-success btn-sm py-0 px-2 fw-semibold"
+                style="font-size: 0.75rem;"
+              >
+                🔄 Reconectar
+              </button>
+            </div>
           </div>
 
         </div>
@@ -172,7 +184,8 @@ const {
   abrirModalCriar,
   fecharModal,
   gerarQRCode,
-  abrirParaReconectar
+  abrirParaReconectar,
+  desconectarInstancia // <-- Importado do composable
 } = useConexoes()
 </script>
 

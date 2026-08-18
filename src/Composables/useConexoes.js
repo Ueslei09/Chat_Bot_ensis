@@ -73,7 +73,7 @@ export function useConexoes() {
     carregarConexoes()
   }
 
- async function gerarQRCode() {
+  async function gerarQRCode() {
     if (!nomeInstancia.value.trim()) {
       alert('Por favor, informe o nome da instância!')
       return
@@ -89,11 +89,10 @@ export function useConexoes() {
 
       const dados = resposta.data.dados || resposta.data;
       
-      // Se a Evolution API já estiver conectada, fechamos e atualizamos a listagem da tela
       if (dados.instance?.state === 'open') {
         alert('Esta instância já está conectada na API!');
         fecharModal();
-        await carregarConexoes(); // Puxa os dados novos e atualiza o card para verde (Conectado)
+        await carregarConexoes();
         return;
       }
       
@@ -117,7 +116,6 @@ export function useConexoes() {
     }
   }
 
-  // 🚀 FUNÇÃO QUE FALTAVA E CAUSAVA O ERRO
   async function abrirParaReconectar(conexao) {
     nomeInstancia.value = conexao.numero || conexao.nome || ''; 
     modalAberto.value = true;
@@ -125,6 +123,25 @@ export function useConexoes() {
 
     if (nomeInstancia.value) {
       await gerarQRCode();
+    }
+  }
+
+  // 🔌 ADICIONADO: Função para desconectar a instância
+  async function desconectarInstancia(conexao) {
+    if (!confirm(`Deseja realmente desconectar esta instância?`)) {
+      return
+    }
+
+    carregando.value = true
+    try {
+      await api.delete(`/conexoes/${conexao.id}`)
+      alert('Instância desconectada com sucesso!')
+      await carregarConexoes()
+    } catch (err) {
+      console.error('Erro ao desconectar:', err)
+      alert(err.response?.data?.erro || 'Erro ao desconectar instância')
+    } finally {
+      carregando.value = false
     }
   }
 
@@ -192,6 +209,7 @@ export function useConexoes() {
     abrirModalCriar,
     fecharModal,
     gerarQRCode,
-    abrirParaReconectar
+    abrirParaReconectar,
+    desconectarInstancia // <--- Exportado com sucesso aqui
   }
 }
