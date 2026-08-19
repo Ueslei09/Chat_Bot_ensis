@@ -46,16 +46,19 @@ export function useGerenciarEmpresa() {
     try { 
       const res = await api.get('/admin/empresas/inadimplencia'); 
       inadimplentes.value = res.data; 
-    } catch { 
+    } catch (err) { 
+      console.error(err);
       alert('Erro ao carregar lista de inadimplência.'); 
     }
   };
 
-  const carregarTodasFaturas = async () => {
+const carregarTodasFaturas = async () => {
     try { 
-      const res = await api.get('/admin/empresas/financeiro/extrato'); 
+      // Ajustado para bater com a rota /extrato do seu financeiroRoutes
+      const res = await api.get('/admin/empresas/extrato'); 
       todasFaturas.value = res.data; 
-    } catch { 
+    } catch (err) { 
+      console.error(err);
       alert('Erro ao carregar o extrato financeiro.'); 
     }
   };
@@ -98,7 +101,8 @@ export function useGerenciarEmpresa() {
   const confirmarBaixaPagamento = async (faturaId, nomeEmpresa) => {
     if (!confirm(`Confirmar o recebimento desta parcela da empresa "${nomeEmpresa}"?`)) return;
     try {
-      const res = await api.put(`/admin/empresas/financeiro/liquidar/${faturaId}`);
+      // Ajustado para bater com a rota /liquidar/:id
+      const res = await api.put(`/admin/empresas/liquidar/${faturaId}`);
       alert(res.data.msg || 'Pagamento confirmado!');
       if (abaAtiva.value === 'inadimplencia') carregarInadimplentes();
       if (abaAtiva.value === 'extrato') carregarTodasFaturas();
@@ -106,7 +110,6 @@ export function useGerenciarEmpresa() {
       alert(err.response?.data?.erro || 'Erro ao processar baixa.');
     }
   };
-
   const prepararProvisao = (empresa) => {
     empresaSelecionada.value = empresa;
     formProvisao.valor = '';
@@ -120,9 +123,11 @@ export function useGerenciarEmpresa() {
     carregando.value = true;
     try {
       const payload = { empresa_id: empresaSelecionada.value.id, ...formProvisao };
-      await api.post('/admin/empresas/financeiro/provisao', payload);
+      // Ajustado para bater com a rota /provisao
+      await api.post('/admin/empresas/provisao', payload);
       alert('Parcela registrada com sucesso!');
       abrirModalProvisao.value = false;
+      if (abaAtiva.value === 'extrato') carregarTodasFaturas();
     } catch (err) { 
       alert(err.response?.data?.erro || 'Erro ao lançar provisão.'); 
     } finally { 
