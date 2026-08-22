@@ -18,6 +18,7 @@ export function useConexoes() {
   const carregandoQR = ref(false)
 
   let isMounted = true
+  let intervaloChecagem = null
 
   const conexoesFiltradas = computed(() => {
     const lista = abaAtual.value === 'ativas' ? conexoesAtivas.value : conexoesArquivadas.value
@@ -70,6 +71,10 @@ export function useConexoes() {
   function fecharModal() {
     modalAberto.value = false
     qrCode.value = null
+    if (intervaloChecagem) {
+      clearInterval(intervaloChecagem);
+      intervaloChecagem = null;
+    }
     carregarConexoes()
   }
 
@@ -88,7 +93,7 @@ export function useConexoes() {
       })
 
       const dados = resposta.data.dados || resposta.data;
-      
+    
       if (dados.instance?.state === 'open') {
         alert('Esta instância já está conectada na API!');
         fecharModal();
@@ -96,17 +101,36 @@ export function useConexoes() {
         return;
       }
       
+      // Captura exata do base64 da Evolution API
       qrCode.value = 
-        dados.base64 || 
         dados.qrcode?.base64 || 
-        dados.qrcode?.code || 
-        dados.code ||
-        dados.qrcode || 
-        null;
+        dados.base64 || 
+        (typeof dados.qrcode === 'string' ? dados.qrcode : null);
 
       if (!qrCode.value) {
-        alert('A API conectou, mas a instância já pode estar ativa. Verifique o status.');
+        alert('A API respondeu, mas o QR Code não veio no formato esperado.');
+        return;
       }
+
+      // 🔍 Inicia a verificação a cada 3 segundos para ver se o usuário escaneou o QR Code
+      if (intervaloChecagem) clearInterval(intervaloChecagem);
+      
+      intervaloChecagem = setInterval(async () => {
+        try {
+          const resStatus = await api.get(`/conexoes/status/${encodeURIComponent(nomeInstancia.value)}`);
+          const statusAtual = resStatus.data?.status || resStatus.data?.instance?.state;
+
+          if (statusAtual === 'open' || statusAtual === 'connected') {
+            clearInterval(intervaloChecagem);
+            intervaloChecagem = null;
+            alert('WhatsApp conectado com sucesso!');
+            fecharModal();
+            await carregarConexoes();
+          }
+        } catch (e) {
+          console.error('Erro ao verificar status da conexão:', e);
+        }
+      }, 3000);
 
     } catch (err) {
       console.error('Erro ao gerar QR Code:', err)
@@ -126,7 +150,6 @@ export function useConexoes() {
     }
   }
 
-  // 🔌 ADICIONADO: Função para desconectar a instância
   async function desconectarInstancia(conexao) {
     if (!confirm(`Deseja realmente desconectar esta instância?`)) {
       return
@@ -191,6 +214,7 @@ export function useConexoes() {
   onUnmounted(() => {
     isMounted = false
     removerEventosSocket()
+    if (intervaloChecagem) clearInterval(intervaloChecagem)
   })
 
   return {
@@ -210,6 +234,6 @@ export function useConexoes() {
     fecharModal,
     gerarQRCode,
     abrirParaReconectar,
-    desconectarInstancia // <--- Exportado com sucesso aqui
+    desconectarInstancia
   }
 }
