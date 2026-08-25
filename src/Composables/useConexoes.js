@@ -141,7 +141,9 @@ export function useConexoes() {
   }
 
   async function abrirParaReconectar(conexao) {
-    nomeInstancia.value = conexao.numero || conexao.nome || ''; 
+    // Altere aqui para buscar a propriedade correta da instância (ex: conexao.instanceName, conexao.nome, etc.)
+    // Se a sua API retorna o nome da instância no campo 'nome' ou se você salvou o nome da instância, ajuste para refletir o valor real (ex: 'teste65')
+    nomeInstancia.value = conexao.instanceName || conexao.nome || ''; 
     modalAberto.value = true;
     qrCode.value = null; 
 
