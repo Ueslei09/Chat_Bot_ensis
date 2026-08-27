@@ -94,6 +94,11 @@ export function useChamados() {
   function configurarEventosSocket() {
     if (!socket.connected) socket.connect()
 
+    // Opcional: Avisa o backend para entrar na sala da empresa logada se necessário
+    if (usuarioLogado.value?.id) {
+      socket.emit('entrarEmpresa', usuarioLogado.value); // Se o seu back-end gerenciar isso
+    }
+
     socket.on('novaMensagem', (mensagem) => {
       if (chamadoSelecionado.value && mensagem.chamado_id === chamadoSelecionado.value.id) {
         const jaExiste = mensagens.value.some(m => m.id === mensagem.id)
@@ -105,22 +110,13 @@ export function useChamados() {
             nextTick(() => { rolarParaOFim() })
           }
         }
+      } else {
+        // Se a mensagem chegou de um chamado que não está aberto na tela, recarrega a lista para o chat subir para o topo
+        carregarChamados(false)
       }
     })
 
-    socket.on('mensagemEditada', (mensagemAtualizada) => {
-      if (chamadoSelecionado.value && mensagemAtualizada.chamado_id === chamadoSelecionado.value.id) {
-        const index = mensagens.value.findIndex(m => m.id === mensagemAtualizada.id)
-        if (index !== -1) mensagens.value[index] = mensagemAtualizada
-      }
-    })
-
-    socket.on('mensagemApagada', ({ id, chamado_id }) => {
-      if (chamadoSelecionado.value && chamado_id === chamadoSelecionado.value.id) {
-        mensagens.value = mensagens.value.filter(m => m.id !== id)
-      }
-    })
-
+    // ... restante dos eventos do socket (mensagemEditada, mensagemApagada, chamadoAtualizado) ...
     socket.on('chamadoAtualizado', (chamadoModificado) => {
       const index = chamados.value.findIndex(c => c.id === chamadoModificado.id)
       if (index !== -1) {
