@@ -186,16 +186,17 @@ const carregarTodasFaturas = async () => {
   };
 
   const deletarEmpresa = async (id, nome) => {
-    if (!confirm(`Excluir empresa "${nome}"?`)) return;
+    if (!confirm(`Deseja realmente inativar a empresa "${nome}"? O acesso e o WhatsApp serão suspensos, mas os dados serão preservados.`)) {
+      return;
+    }
     try {
       await api.delete(`/admin/empresas/${id}`);
-      alert('Empresa excluída.');
-      carregarEmpresas();
+      alert('Empresa inativada com sucesso! Dados preservados.');
+      carregarEmpresas(); // Recarrega a lista para atualizar o badge de status na tela
     } catch (err) {
-      alert(err.response?.data?.erro || 'Erro ao excluir.');
+      alert(err.response?.data?.erro || 'Erro ao inativar empresa.');
     }
   };
-
   onMounted(() => {
     carregarEmpresas();
     checarStatusManutencaoMaster();
