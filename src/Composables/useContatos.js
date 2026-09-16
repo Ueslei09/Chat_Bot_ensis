@@ -149,15 +149,27 @@ export function useContatos() {
     router.push('/app/chamados')
   }
 
-  const abrirChamado = async (contato) => {
-    try {
-      const novoChamado = await criarChamado(contato.id)
-      await assumirChamado(novoChamado.id)
-      router.push({ path: '/app/chamados', query: { abrir: novoChamado.id } })
-    } catch (err) {
-      erro.value = err.response?.data?.erro || 'Erro ao abrir chamado'
-    }
+
+// Dentro do seu composable ou direto no script do ContatosView.vue:
+const abrirChamado = async (idContato) => {
+  // Força conversão para garantir que não é undefined
+  const idReal = Number(idContato);
+
+  if (!idReal || isNaN(idReal)) {
+    alert("Atenção: Este contato não possui um ID válido na listagem.");
+    console.error("ID inválido recebido no clique:", idContato);
+    return;
   }
+
+  try {
+    console.log(`🚀 Enviando requisição para assumir chamado do ID: ${idReal}`);
+    await api.put(`/chamados/${idReal}/assumir`);
+    router.push({ path: '/app/chats' });
+  } catch (err) {
+    console.error('❌ Erro na requisição:', err.response || err);
+    alert(err.response?.data?.erro || 'Erro ao abrir chamado.');
+  }
+};
 
   onMounted(carregarContatos)
 

@@ -213,6 +213,32 @@ export function useChamados() {
     } catch (err) { console.error(err) }
   }
 
+  // Adicione esta função no seu useChamados.js
+  async function abrirChamado(contato) {
+    try {
+      // O ID que vem do botão da tela de contatos é o ID do cliente
+      const clienteId = contato.id || contato.codigo;
+      
+      if (!clienteId) {
+        alert('ID do contato não encontrado.');
+        return;
+      }
+
+      // Faz uma requisição para o backend para garantir/abrir o chamado desse cliente
+      const resposta = await axios.post('/chamados/iniciar-por-cliente', { clienteId });
+      
+      // Seleciona o chamado retornado e muda para a aba de atendimento
+      const chamadoCriado = resposta.data;
+      abaAtual.value = 'EM_ATENDIMENTO';
+      await selecionarChamado(chamadoCriado);
+      
+      mensagemAcao.value = 'Chamado aberto/carregado com sucesso!';
+    } catch (err) {
+      console.error('Erro ao abrir chamado pelo contato:', err);
+      mensagemAcao.value = err.response?.data?.erro || 'Erro ao abrir chamado';
+    }
+  }
+
   async function reabrir() {
     try {
       const resposta = await reabrirChamado(chamadoSelecionado.value.id)
@@ -538,6 +564,7 @@ async function carregarMaisMensagens() {
     carregarDetalhes,
     abrirDetalhes,
     carregarMaisMensagens,
-    apagar
+    apagar,
+    abrirChamado
   }
 }

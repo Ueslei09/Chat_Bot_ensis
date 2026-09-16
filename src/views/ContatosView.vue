@@ -156,7 +156,7 @@
               </td>
               <td class="text-end pe-3">
                 <div class="d-inline-flex gap-1">
-                  <button class="btn btn-sm btn-primary py-1 px-2 fs-7 fw-semibold" @click="abrirChamado(contato)" title="Abrir Chamado">
+                  <button class="btn btn-sm btn-primary py-1 px-2 fs-7 fw-semibold" @click="abrirChamado(contato.id || contato.cliente_id)" title="Abrir Chamado">
                     💬 Chamado
                   </button>
                   <button class="btn btn-sm btn-light border py-1 px-2 fs-7 text-secondary" @click="editarContato(contato)">

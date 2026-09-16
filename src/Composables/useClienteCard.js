@@ -6,7 +6,7 @@ export function useClienteCard(props, emit) {
   const editando = ref(false)
   const salvando = ref(false)
   const erro = ref('')
-  const form = ref({ nome: '', empresa: '', cliente_telefone: '', email: '' })
+  const form = ref({ nome: '', empresa: '', telefone: '', email: '' })
 
   // Extrai a inicial do nome com segurança
   const inicial = computed(() => {
@@ -15,11 +15,13 @@ export function useClienteCard(props, emit) {
   })
 
   const iniciarEdicao = () => {
+
+    console.log("=== OBJETO RECEBIDO ===", JSON.stringify(props.cliente))
     erro.value = ''
     form.value = {
       nome: props.cliente?.cliente_nome || props.cliente?.nome || '',
       empresa: props.cliente?.empresa || '',
-      cliente_telefone: props.cliente?.cliente_telefone || props.cliente?.telefone || '',
+      telefone: props.cliente?.cliente_telefone || props.cliente?.telefone || '',
       email: props.cliente?.email || '',
       conexao: props.cliente?.conexao || 'whatsapp',
       eh_grupo: props.cliente?.eh_grupo || false
@@ -28,17 +30,18 @@ export function useClienteCard(props, emit) {
   }
 
   const salvar = async () => {
-    if (!form.value.nome.trim() || !form.value.cliente_telefone.trim()) {
+    if (!form.value.nome.trim() || !form.value.telefone.trim()) {
       erro.value = 'Nome e Telefone são campos obrigatórios.'
       return
     }
 
-    // Procura o ID de forma inteligente em todas as variações possíveis que o objeto pai pode mandar
-    const idContato = props.cliente?.cliente_id || props.cliente?.id || props.cliente?.contatoId
-
+    // Busca o ID real do cliente, evitando pegar o ID do chamado (props.cliente.id)
+    const idContato = props.cliente?.cliente_id || props.cliente?.id_cliente || props.cliente?.contato_id
+     console.log("--> ID que VAI SER ENVIADO para o backend:", idContato)
+    console.log("--> Objeto props.cliente completo:", props.cliente)
     if (!idContato) {
-      erro.value = 'ID do contato não encontrado no objeto selecionado.'
-      console.error('Objeto cliente recebido nas props:', props.cliente)
+      erro.value = 'ID do cliente não encontrado neste chamado.'
+      console.error('Objeto cliente/chamado recebido nas props:', props.cliente)
       return
     }
 
@@ -46,7 +49,14 @@ export function useClienteCard(props, emit) {
     erro.value = ''
 
     try {
-      await atualizarContato(idContato, form.value)
+      await atualizarContato(idContato, {
+        nome: form.value.nome,
+        empresa: form.value.empresa,
+        cliente_telefone: form.value.telefone, // Mapeia para a coluna correta do banco
+        email: form.value.email,
+        conexao: form.value.conexao,
+        eh_grupo: form.value.eh_grupo
+      })
       editando.value = false
       emit('atualizado')
     } catch (err) {
