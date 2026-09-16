@@ -6,36 +6,39 @@ export function useClienteCard(props, emit) {
   const editando = ref(false)
   const salvando = ref(false)
   const erro = ref('')
-  const form = ref({ nome: '', empresa: '', telefone: '', email: '' })
+  const form = ref({ nome: '', empresa: '', cliente_telefone: '', email: '' })
 
   // Extrai a inicial do nome com segurança
   const inicial = computed(() => {
-    const nome = props.cliente.cliente_nome || props.cliente.nome || '?'
+    const nome = props.cliente?.cliente_nome || props.cliente?.nome || '?'
     return nome.charAt(0).toUpperCase()
   })
 
   const iniciarEdicao = () => {
     erro.value = ''
     form.value = {
-      nome: props.cliente.cliente_nome || props.cliente.nome || '',
-      empresa: props.cliente.empresa || '',
-      telefone: props.cliente.telefone || '',
-      email: props.cliente.email || '',
-      conexao: props.cliente.conexao || 'whatsapp',
-      eh_grupo: props.cliente.eh_grupo || false
+      nome: props.cliente?.cliente_nome || props.cliente?.nome || '',
+      empresa: props.cliente?.empresa || '',
+      cliente_telefone: props.cliente?.cliente_telefone || props.cliente?.telefone || '',
+      email: props.cliente?.email || '',
+      conexao: props.cliente?.conexao || 'whatsapp',
+      eh_grupo: props.cliente?.eh_grupo || false
     }
     editando.value = true
   }
 
   const salvar = async () => {
-    if (!form.value.nome.trim() || !form.value.telefone.trim()) {
+    if (!form.value.nome.trim() || !form.value.cliente_telefone.trim()) {
       erro.value = 'Nome e Telefone são campos obrigatórios.'
       return
     }
 
-    const idContato = props.cliente.cliente_id || props.cliente.id
+    // Procura o ID de forma inteligente em todas as variações possíveis que o objeto pai pode mandar
+    const idContato = props.cliente?.cliente_id || props.cliente?.id || props.cliente?.contatoId
+
     if (!idContato) {
-      erro.value = 'ID do contato não encontrado.'
+      erro.value = 'ID do contato não encontrado no objeto selecionado.'
+      console.error('Objeto cliente recebido nas props:', props.cliente)
       return
     }
 

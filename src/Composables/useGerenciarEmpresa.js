@@ -174,14 +174,16 @@ const carregarTodasFaturas = async () => {
     }
   };
 
-  const bloquearPorInadimplencia = async (empresaInadimplente) => {
+ const bloquearPorInadimplencia = async (empresaInadimplente) => {
     if (!confirm(`Suspender acesso de "${empresaInadimplente.nome}"?`)) return;
     try {
-      await api.put(`/admin/empresas/${empresaInadimplente.id}/toggle-status`);
+      // Alterado de api.put para api.delete para bater com router.delete('/:id', ...)
+      await api.delete(`/admin/empresas/${empresaInadimplente.id}`);
+      
       alert('Acesso revogado.');
       carregarInadimplentes();
-    } catch { 
-      alert('Erro ao suspender.'); 
+    } catch (err) { 
+      alert(err.response?.data?.erro || 'Erro ao suspender.'); 
     }
   };
 
