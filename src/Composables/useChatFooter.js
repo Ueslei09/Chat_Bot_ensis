@@ -16,34 +16,35 @@ export function useChatFooter(props, emit) {
   const arquivoPendente = ref(null)
 
   const estado = computed(() => {
-    if (props.status === 'FECHADO') return 'encerrado'
-    if (props.status === 'AGUARDANDO_CLIENTE') return 'aguardandoCliente'
+    console.log('🔍 DEBUG DO CHAT FOOTER:', {
+      statusAtual: props.status,
+      statusChamadoObj: props.chamado?.status,
+      atendenteIdDoChamado: props.chamado?.atendente_id,
+      meuUsuarioId: props.usuario?.id,
+      perfilUsuario: props.usuario?.perfil,
+      objetoChamadoCompleto: props.chamado
+    })
 
-    if (props.status === 'EM_ATENDIMENTO') {
-      const souDono = props.chamado?.atendente_id === props.usuario?.id
-      
-      // Normaliza o perfil para evitar erros com acentos ou maiúsculas/minúsculas ('USUÁRIO', 'ADM', 'MASTER', etc)
-      const perfilNormalizado = props.usuario?.perfil 
-        ? props.usuario.perfil.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
-        : ''
-      
-      const ehAdminOuMaster = perfilNormalizado === 'ADM' || perfilNormalizado === 'MASTER' || perfilNormalizado === 'ADMIN'
+    if (props.status === 'FECHADO' || props.chamado?.status === 'FECHADO') return 'encerrado'
+    if (props.status === 'AGUARDANDO_CLIENTE' || props.chamado?.status === 'AGUARDANDO_CLIENTE') return 'aguardandoCliente'
 
-      // Se for dono, admin, ou se o chamado não tiver um atendente travado estritamente, libera!
-      if (souDono || ehAdminOuMaster || !props.chamado?.atendente_id) return 'liberado'
-      
-      // Se chegou aqui e tem outro atendente, mas você quer flexibilizar para a mesma empresa:
-      // Se a empresa do chamado for igual à empresa do usuário logado, libera também!
-      if (props.chamado?.empresa_id && props.usuario?.empresa_id && props.chamado.empresa_id === props.usuario.empresa_id) {
-        return 'liberado'
-      }
+    // Se o chamado estiver em atendimento ou aberto
+    const atendenteId = props.chamado?.atendente_id
+    const meuId = props.usuario?.id
 
-      return 'bloqueado'
-    }
+    const perfilNormalizado = props.usuario?.perfil 
+      ? props.usuario.perfil.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+      : ''
+    
+    const ehAdmin = perfilNormalizado === 'ADM' || perfilNormalizado === 'MASTER' || perfilNormalizado === 'ADMIN'
 
-    return 'liberado'
+    if (ehAdmin) return 'liberado'
+    
+    // Se não tem atendente ou se é o seu próprio ID, libera
+    if (!atendenteId || atendenteId === meuId) return 'liberado'
+
+    return 'bloqueado'
   })
-
   const aoClicarBotaoPrincipal = () => {
     if (props.podeAssumir) {
       emit('assumirChamado')
