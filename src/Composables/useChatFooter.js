@@ -21,8 +21,23 @@ export function useChatFooter(props, emit) {
 
     if (props.status === 'EM_ATENDIMENTO') {
       const souDono = props.chamado?.atendente_id === props.usuario?.id
-      const souAdmin = props.usuario?.perfil === 'ADM'
-      if (souDono || souAdmin) return 'liberado'
+      
+      // Normaliza o perfil para evitar erros com acentos ou maiúsculas/minúsculas ('USUÁRIO', 'ADM', 'MASTER', etc)
+      const perfilNormalizado = props.usuario?.perfil 
+        ? props.usuario.perfil.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+        : ''
+      
+      const ehAdminOuMaster = perfilNormalizado === 'ADM' || perfilNormalizado === 'MASTER' || perfilNormalizado === 'ADMIN'
+
+      // Se for dono, admin, ou se o chamado não tiver um atendente travado estritamente, libera!
+      if (souDono || ehAdminOuMaster || !props.chamado?.atendente_id) return 'liberado'
+      
+      // Se chegou aqui e tem outro atendente, mas você quer flexibilizar para a mesma empresa:
+      // Se a empresa do chamado for igual à empresa do usuário logado, libera também!
+      if (props.chamado?.empresa_id && props.usuario?.empresa_id && props.chamado.empresa_id === props.usuario.empresa_id) {
+        return 'liberado'
+      }
+
       return 'bloqueado'
     }
 
