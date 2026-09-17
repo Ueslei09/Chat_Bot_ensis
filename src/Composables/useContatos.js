@@ -1,4 +1,5 @@
 // src/composables/useContatos.js
+
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -152,7 +153,6 @@ export function useContatos() {
 
 // Dentro do seu composable ou direto no script do ContatosView.vue:
 const abrirChamado = async (idContato) => {
-  // Força conversão para garantir que não é undefined
   const idReal = Number(idContato);
 
   if (!idReal || isNaN(idReal)) {
@@ -163,7 +163,10 @@ const abrirChamado = async (idContato) => {
 
   try {
     console.log(`🚀 Enviando requisição para assumir chamado do ID: ${idReal}`);
-    await api.put(`/chamados/${idReal}/assumir`);
+    
+    // Usa a função importada do serviço de chamados em vez do api.put solto
+    await assumirChamado(idReal);
+    
     router.push({ path: '/app/chats' });
   } catch (err) {
     console.error('❌ Erro na requisição:', err.response || err);
